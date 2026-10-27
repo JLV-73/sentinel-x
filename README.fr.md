@@ -4,18 +4,35 @@
 
 Apache-2.0 · [English](README.md) · [Contribuer](CONTRIBUTING.md)
 
-**Tu lis MAIN — P0.1 INTERNATIONAL EDITION (stable).**
+**v0.1.0-alpha.1 — Sources de la première Alpha officielle : P0.1 INTERNATIONAL EDITION + P1-A INTELLIGENCE CORE. Expérimentale, locale et défensive.**
 
 | Version | Ce qui est installé |
 |---|---|
-| [main — P0.1 INTERNATIONAL EDITION](https://github.com/JLV-73/sentinel-x/tree/main) | Catalogue CISA KEV stable, cockpit bilingue, recherche, graphiques et provenance |
-| [P1-A — INTELLIGENCE CORE](https://github.com/JLV-73/sentinel-x/tree/p1/intelligence-core) | Branche expérimentale ajoutant NVD/CVSS et FIRST EPSS ; **non fusionnée dans main** |
+| [main — Première Alpha](https://github.com/JLV-73/sentinel-x/tree/main) | CISA KEV, NVD/CVSS ciblé, FIRST EPSS, cockpit bilingue, recherche, graphiques et provenance intégrés |
+| [p0.1-international-stable](https://github.com/JLV-73/sentinel-x/tree/p0.1-international-stable) | Référence historique CISA seule, figée ; tag non déplacé |
+| [p1/intelligence-core](https://github.com/JLV-73/sentinel-x/tree/p1/intelligence-core) | Référence de développement conservée ; ses fonctions P1-A existantes sont intégrées à cette Alpha |
 
-Code source uniquement : **aucune Release officielle, aucun exécutable Windows,
-service hébergé ou base locale inclus**. L'application s'exécute chez toi ; tu demandes les données.
+**Alpha en code source uniquement :** archives sources standard GitHub. Aucun
+exécutable Windows, installateur, conteneur, service hébergé ou base locale inclus.
+L’application tourne chez toi ; tu demandes les données des sources officielles.
 
 ![Vue réelle du cockpit NIGHTFALL — CISA](docs/images/overview-en.png)
 *Capture réelle et datée de validation CISA : ni attaques en direct, ni diagnostic de tes appareils.*
+
+## Renseignements inclus — signaux distincts, aucun risque inventé
+
+- **CISA KEV :** import manuel validé, recherche/filtres/pagination/fiches CVE,
+  graphiques d'ajouts, provenance et conservation des dernières données valides.
+- **NVD/CVSS :** enrichissement manuel ciblé d'une CVE du catalogue local ;
+  gravité/vecteur/version/fournisseur séparés, disponibilité et fraîcheur.
+- **FIRST EPSS :** actualisation manuelle des identifiants KEV locaux ; probabilité
+  d'exploitation à 30 jours, percentile, date source et provenance distincts.
+- **NIGHTFALL :** cockpit FR/EN, contrôle des sources, FastAPI/SQLite et React/TypeScript.
+
+Aucune collecte au démarrage, surveillance autonome, analyse réseau, alerte ou score
+composite. NVD n'est pas collectée exhaustivement. Après CISA, utiliser la commande
+NVD d'une fiche ou les commandes explicites NVD/EPSS du contrôle des sources.
+Les lectures GET restent locales.
 
 ## A. ESSAYER SENTINEL X — DÉMARRAGE RAPIDE
 
@@ -62,6 +79,14 @@ Set-Location $AlternativeParent
 ```
 
 L'étape 2 crée un nouveau `sentinel-x` dans ce parent : aucune suppression ni écrasement.
+
+Pour reproduire exactement cette Alpha après publication, remplacer seulement la
+ligne de clonage de l'étape 2 par celle-ci (HEAD détachée normale pour un tag).
+Ne pas cloner deux fois. Le clone main ci-dessus reste valable pour le développement.
+
+```powershell
+git clone --branch v0.1.0-alpha.1 https://github.com/JLV-73/sentinel-x.git
+```
 
 ### 3. Installer les dépendances dans le projet
 

@@ -31,7 +31,7 @@ The validation schema is not transferred: its separate scope is uncertain. Insta
 the pinned official resource locally using `tools/bootstrap_schema.py`; see
 `docs/SCHEMA_SETUP.md`. Its bytes remain identical to the tested historical schema.
 
-## NVD and FIRST EPSS — development branch only
+## NVD and FIRST EPSS — integrated Alpha
 
 No raw replies, dumps, runtime histories or NVD/EPSS screenshots are distributed.
 Official NVD terms could not be fully retrieved with verified TLS during this

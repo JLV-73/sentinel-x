@@ -8,9 +8,10 @@ Opening a PR grants neither write access nor authority to merge or publish a rel
 
 ## 1. Choose the target, then create your branch
 
-- `main`: stable **P0.1 INTERNATIONAL EDITION**, CISA KEV only.
-- `p1/intelligence-core`: experimental **P1-A INTELLIGENCE CORE**, adding NVD/CVSS
-  and FIRST EPSS; not merged into stable main.
+- `main`: integrated experimental **First Alpha**, P0.1 + P1-A (CISA KEV, NVD/CVSS, FIRST EPSS).
+- `p1/intelligence-core`: preserved P1-A development reference; its existing functions
+  are included in the First Alpha. The historical CISA-only baseline is the
+  immutable `p0.1-international-stable` tag.
 
 Use GitHub's **Fork** button on [the repository](https://github.com/JLV-73/sentinel-x).
 Replace `YOUR-GITHUB-LOGIN` below with your actual GitHub login. In a normal,

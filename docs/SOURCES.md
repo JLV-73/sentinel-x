@@ -1,6 +1,6 @@
 # Official sources and interpretation
 
-## Stable main: CISA KEV
+## CISA KEV foundation
 
 Canonical JSON: https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json
 
@@ -19,7 +19,7 @@ and checks its SHA-256; see `SCHEMA_SETUP.md` and `config/kev-schema.source.json
 The selected screenshot shows only the application's CC0 CISA overview; it is not
 a raw catalogue redistribution. Third-party links have their own terms.
 
-## P1-A development branch only: NVD and FIRST EPSS
+## NVD and FIRST EPSS — integrated P1-A enrichment
 
 NVD API: https://services.nvd.nist.gov/rest/json/cves/2.0
 
@@ -42,7 +42,7 @@ a future provider change may require an approved compatibility update. NVD
 policy verification included official-page indexed excerpts when developer pages
 returned 403; no access protection was bypassed.
 
-NVD attribution remains visible in the development UI: "This product uses data
+NVD attribution remains visible in the UI: "This product uses data
 from the NVD API but is not endorsed or certified by the NVD."
 
 No raw CISA/NVD/EPSS downloads or local collection histories are shipped here.

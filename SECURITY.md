@@ -27,8 +27,8 @@ fixtures. Never probe third parties or other users' installations. Source refres
 is not a security test. Credentials must be revoked/rotated with their provider,
 not repeated in a report.
 
-The owner decides triage, remediation and coordinated disclosure. P0.1 is stable;
-P1-A is development, not an SLA or supported-version matrix. Releases need JLV GO.
+The owner decides triage, remediation and coordinated disclosure. The First Alpha integrates P0.1 and P1-A;
+the historical P0.1 tag remains frozen. These labels are not an SLA or supported-version matrix. Releases need JLV GO.
 Non-sensitive functional bugs use the regular bug-report form.
 
 **Français :** utiliser le bouton privé « Report a vulnerability » de l'onglet

@@ -1,4 +1,4 @@
-import type { CatalogueFilters, Catalogue, Summary, SyncStatus, Detail, ImportRecord } from './types';
+import type { CatalogueFilters, Catalogue, Summary, SyncStatus, Detail, ImportRecord, Intelligence, IntelligenceStatus, IntelligenceSummary, SourceData, NvdData, IntelligenceAttempt } from './types';
 export type ApiErrorCode='unreadable'|'http'|'source'|'busy'|'cooldown'|'database'|'notFound'|'validation';
 function errorCode(status:number,detail:string):ApiErrorCode {
  if(status===404)return 'notFound';if(status===422)return 'validation';if(status===502)return 'source';if(status===503)return 'database';
@@ -11,11 +11,17 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   try { body = await response.json(); } catch { throw new ApiError('',response.status,'unreadable'); }
   if (!response.ok) {
     const detail = (body as {detail?:unknown})?.detail;
-    throw new ApiError(typeof detail === 'string' ? detail : '', response.status);
+    throw new ApiError(typeof detail === 'string' ? detail : path.startsWith('/intelligence')&&detail!=null ? JSON.stringify(detail,null,2) : '', response.status);
   }
   return body as T;
 }
 export const api = {
+  intelligence: (id:string,signal?:AbortSignal) => request<Intelligence>(`/intelligence/${encodeURIComponent(id)}`,{signal}),
+  intelligencePage: (ids:string[],signal?:AbortSignal) => request<{items:Record<string,Intelligence>}>(`/intelligence?${new URLSearchParams({cve:ids.join(',')})}`,{signal}),
+  intelligenceStatus: (signal?:AbortSignal) => request<IntelligenceStatus>('/intelligence/status',{signal}),
+  intelligenceSummary: (signal?:AbortSignal) => request<IntelligenceSummary>('/intelligence/summary',{signal}),
+  fetchNvd: (id:string,refresh:boolean,signal?:AbortSignal) => request<SourceData<NvdData>>(`/intelligence/nvd/${encodeURIComponent(id)}?refresh=${refresh}`,{method:'POST',headers:{'X-Sentinel-Request':'sync'},signal}),
+  fetchEpss: (signal?:AbortSignal) => request<IntelligenceAttempt>('/intelligence/epss',{method:'POST',headers:{'X-Sentinel-Request':'sync'},signal}),
   summary: (signal?:AbortSignal) => request<Summary>('/summary', {signal}),
   health: (signal?:AbortSignal) => request<{status:string;database:string;data_mode:string}>('/health', {signal}),
   catalogue: (filters:CatalogueFilters, signal?:AbortSignal) => {
