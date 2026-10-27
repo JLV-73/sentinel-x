@@ -1,6 +1,6 @@
 # Contributing to SENTINEL X
 
-SENTINEL X is a private JLV LABS project. These rules are for contributors explicitly authorized by the owner; they do not open public onboarding, invite collaborators or grant source-code rights. English is the shared documentation language; French reports and discussion are welcome.
+SENTINEL X is an experimental defensive open-source project by JLV LABS under Apache-2.0. Public bug reports and proposed contributions are welcome; repository write access is not granted by opening a PR. English is the shared documentation language; French reports and discussion are welcome.
 
 ## Before proposing a change
 
@@ -34,8 +34,16 @@ The standard unit suites use isolated test data; live browser recipes and source
 
 ## Boundaries
 
-No default external writes, public exposure, remote access, new paid service, Actions workflow, automated source refresh, invitations, profile changes, scans or exploitation are authorized by this policy. Do not commit runtime data, virtual environments, caches, dependencies or secrets.
+Publishing source code does not authorize operational external writes, public hosting, remote access, new paid services, Actions workflows, automated source refresh, invitations, profile changes, scans or exploitation. Do not commit runtime data, virtual environments, caches, dependencies or secrets.
 
-No project license has been selected and no open-source grant or contributor license agreement is established here. Submit only material you are authorized to share privately. Any necessary rights arrangement must be agreed with the owner before acceptance; a PR does not settle licensing. Third-party code and data retain their own terms, separately from JLV LABS original code.
+## Contribution license
 
-**Français :** contributions uniquement sur autorisation, par PR vers la branche convenue, avec tests locaux et revue du propriétaire. Toute fusion structurante, publication de version ou modification de visibilité exige un GO explicite de JLV. Aucun droit de réutilisation n'est accordé par ce document.
+By intentionally submitting a contribution for inclusion, you submit it under
+Apache License 2.0 section 5, unless you explicitly state otherwise. Submit only
+material you have the right to contribute. Identify any third-party material,
+license and notices; do not assume it can be relicensed. Contributors retain
+copyright. No additional CLA, copyright assignment or formal DCO sign-off is
+required by this policy. Owner review may reject incompatible or unclear rights.
+
+
+**Français :** propositions par PR vers la branche convenue, avec tests locaux et revue du propriétaire. Contributions intentionnelles sous Apache-2.0, sans cession de droits ni CLA additionnel. Toute fusion structurante, release ou modification future de visibilité exige le GO JLV.

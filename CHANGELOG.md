@@ -4,6 +4,15 @@ Milestone history, not a semantic-version release series. Application milestones
 
 `main` carries stable **P0.1**. **P1-A** is separate development on [`p1/intelligence-core`](https://github.com/JLV-73/sentinel-x/tree/p1/intelligence-core); its capabilities are not present on stable `main`. The stable reference is `p0.1-international-stable`. Clean-publication commits are new sanitized history, not a push of original local history.
 
+## G2 — Public repository launch — 2026-10-27
+
+- Selected Apache-2.0 for JLV-owned original project code; added official LICENSE,
+  project NOTICE and separated third-party terms.
+- Prepared public FR/EN documentation and Apache-2.0 contribution terms without
+  a CLA or copyright assignment. Private security reporting uses GitHub.
+- Preserved stable/development source separation and the immutable stable tag.
+- No release, package, binary, source-engine change or Actions automation.
+
 ## GitHub Foundation — 2026-10-27 — private preparation
 
 - Prepared a deliberately new sanitized Git history and version-specific international presentation.

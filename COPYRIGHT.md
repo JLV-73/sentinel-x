@@ -1,15 +1,20 @@
-# Project license decision pending
+# Copyright and license scope
 
-Copyright (c) 2026 JLV LABS for original project contributions.
+Copyright (c) 2026 JLV LABS for original copyrightable project material it owns.
+JLV, the project owner, authorized Apache License, Version 2.0 on 2026-10-27.
+The full official license is in [LICENSE](LICENSE); retain [NOTICE](NOTICE).
 
-No definitive license has been selected or granted for original SENTINEL X code.
-Rights otherwise remain reserved by default. This statement records the current
-status; it does not select a future proprietary or open-source license.
+The Apache-2.0 grant covers JLV-owned original project material in this repository,
+including that material in earlier sanitized publication commits and the immutable
+`p0.1-international-stable` reference. Historical documents recording the prior
+pending-license state are history, not a withdrawal of this current grant.
+No local private archive or unrelated third-party material is licensed by this notice.
 
-Private repository access is not a grant to redistribute or relicense the code.
-A public opening, final license choice and contribution licensing require an
-explicit Product Owner decision. See `docs/LICENSE_OPTIONS.md`.
+Third-party software, notices, data, logos and trademarks retain their own terms.
+See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and `third_party/`.
+The source-code license is not a dataset-redistribution license or a grant to use
+CISA/DHS logos/seals. The ancillary schema is fetched locally, not redistributed.
 
-Third-party software and official-source materials keep their own terms. This
-notice does not replace those terms; see `THIRD_PARTY_NOTICES.md` and
-`third_party/cisa/UPSTREAM-NOTICE.txt`.
+Contributors retain ownership of their contributions. Contributions intentionally
+submitted for inclusion follow Apache-2.0 section 5 unless explicitly stated
+otherwise; no copyright assignment or additional CLA is imposed.

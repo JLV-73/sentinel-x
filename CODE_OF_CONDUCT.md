@@ -1,6 +1,6 @@
 # Code of conduct
 
-This short, project-specific policy applies to authorized collaboration in SENTINEL X issues, pull requests, reviews and project discussions. It does not establish public onboarding.
+This project-specific policy applies to public collaboration in SENTINEL X issues, pull requests, reviews and project discussions. Public participation grants no direct write access or support entitlement.
 
 ## Expected conduct
 

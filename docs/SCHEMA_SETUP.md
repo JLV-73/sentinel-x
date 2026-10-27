@@ -2,8 +2,8 @@
 
 The runtime validation schema is intentionally **not redistributed in Git**.
 The upstream notice explicitly covers the KEV database; scope for the ancillary
-schema remains a narrowly documented licensing uncertainty. No project license
-or third-party clearance is invented here.
+schema remains a narrowly documented licensing uncertainty. Apache-2.0 for project code
+does not license this external resource or create third-party clearance.
 
 After creating the project-local Python environment, run from the checkout root:
 
