@@ -4,16 +4,18 @@
 
 Apache-2.0 · [English](README.md) · [Contribuer](CONTRIBUTING.md)
 
-**v0.1.0-alpha.1 — Sources de la première Alpha officielle : P0.1 INTERNATIONAL EDITION + P1-A INTELLIGENCE CORE. Expérimentale, locale et défensive.**
+**P1-B INTELLIGENCE ENGINE — branche de développement, non publiée en Release.** Basée sur `v0.1.0-alpha.1` ; Intelligence Triage n’est pas encore fusionné dans main et aucune nouvelle Release n’est créée.
 
 | Version | Ce qui est installé |
 |---|---|
+| [p1b/intelligence-engine](https://github.com/JLV-73/sentinel-x/tree/p1b/intelligence-engine) | Développement : Intelligence Triage consolidé en lecture seule et filtres multi-signaux transparents ; absent de main |
 | [main — Première Alpha](https://github.com/JLV-73/sentinel-x/tree/main) | CISA KEV, NVD/CVSS ciblé, FIRST EPSS, cockpit bilingue, recherche, graphiques et provenance intégrés |
 | [p0.1-international-stable](https://github.com/JLV-73/sentinel-x/tree/p0.1-international-stable) | Référence historique CISA seule, figée ; tag non déplacé |
 | [p1/intelligence-core](https://github.com/JLV-73/sentinel-x/tree/p1/intelligence-core) | Référence de développement conservée ; ses fonctions P1-A existantes sont intégrées à cette Alpha |
 
-**Alpha en code source uniquement :** archives sources standard GitHub. Aucun
-exécutable Windows, installateur, conteneur, service hébergé ou base locale inclus.
+**Développement en code source uniquement :** aucune Release P1-B ni application
+empaquetée. L’Alpha R1 reste distincte. Aucun exécutable Windows, installateur,
+conteneur, service hébergé ou base locale inclus.
 L’application tourne chez toi ; tu demandes les données des sources officielles.
 
 ![Vue réelle du cockpit NIGHTFALL — CISA](docs/images/overview-en.png)
@@ -33,6 +35,21 @@ Aucune collecte au démarrage, surveillance autonome, analyse réseau, alerte ou
 composite. NVD n'est pas collectée exhaustivement. Après CISA, utiliser la commande
 NVD d'une fiche ou les commandes explicites NVD/EPSS du contrôle des sources.
 Les lectures GET restent locales.
+
+## Intelligence Triage — développement P1-B
+
+Ouvrir **Intelligence Triage** pour rapprocher KEV, toutes les versions/fournisseurs
+CVSS et probabilité/percentile EPSS. Recherche, dates inclusives d’ajout au catalogue,
+disponibilité, seuils CVSS/EPSS et récence se combinent avec ET.
+L’entrée EPSS est un pourcentage (0–100) ; l’API utilise une probabilité (0–1).
+Une absence n’est jamais zéro. Les seuils examinent aussi les valeurs conservées
+périmées/après erreur : états, dates et provenance restent visibles. Aucun score
+composite, recommandation automatique ou diagnostic d’un appareil. Les lignes CISA
+seules restent utilisables. Filtres et retour de fiche gardent leur contexte au
+changement FR/EN. La consultation effectue uniquement des GET locaux, sans collecte.
+
+Voir le [contrat de triage](docs/TRIAGE_CONTRACT.md) et l’[étude OSV/GHSA](docs/OSV_GHSA_STUDY.md)
+pour une éventuelle source future — étude uniquement, aucun connecteur intégré.
 
 ## A. ESSAYER SENTINEL X — DÉMARRAGE RAPIDE
 
@@ -63,7 +80,7 @@ Le positionnement explicite quitte le dossier initial de PowerShell pour ton dos
 
 ```powershell
 if (Test-Path -LiteralPath .\sentinel-x) { throw "sentinel-x already exists. Use a new parent folder; do not delete it." }
-git clone https://github.com/JLV-73/sentinel-x.git
+git clone --branch p1b/intelligence-engine https://github.com/JLV-73/sentinel-x.git
 if ($LASTEXITCODE -ne 0) { throw "Clone failed. Stop here; do not run Python or npm." }
 Set-Location .\sentinel-x
 ```
@@ -80,9 +97,9 @@ Set-Location $AlternativeParent
 
 L'étape 2 crée un nouveau `sentinel-x` dans ce parent : aucune suppression ni écrasement.
 
-Pour reproduire exactement cette Alpha après publication, remplacer seulement la
+Pour retrouver l’Alpha R1 figée (sans le triage P1-B), remplacer seulement la
 ligne de clonage de l'étape 2 par celle-ci (HEAD détachée normale pour un tag).
-Ne pas cloner deux fois. Le clone main ci-dessus reste valable pour le développement.
+Ne pas cloner deux fois. Le clone P1-B ci-dessus sert au développement ; le tag Alpha reste figé.
 
 ```powershell
 git clone --branch v0.1.0-alpha.1 https://github.com/JLV-73/sentinel-x.git

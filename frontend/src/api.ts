@@ -1,4 +1,4 @@
-import type { CatalogueFilters, Catalogue, Summary, SyncStatus, Detail, ImportRecord, Intelligence, IntelligenceStatus, IntelligenceSummary, SourceData, NvdData, IntelligenceAttempt } from './types';
+import type { CatalogueFilters, Catalogue, Summary, SyncStatus, Detail, ImportRecord, Intelligence, IntelligenceStatus, IntelligenceSummary, SourceData, NvdData, IntelligenceAttempt, TriageQuery, TriageResult } from './types';
 export type ApiErrorCode='unreadable'|'http'|'source'|'busy'|'cooldown'|'database'|'notFound'|'validation';
 function errorCode(status:number,detail:string):ApiErrorCode {
  if(status===404)return 'notFound';if(status===422)return 'validation';if(status===502)return 'source';if(status===503)return 'database';
@@ -16,6 +16,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return body as T;
 }
 export const api = {
+  triage: (filters:TriageQuery,signal?:AbortSignal) => {
+    const params=new URLSearchParams();
+    Object.entries(filters).forEach(([key,value])=>{if(value!==''&&value!==undefined)params.set(key,String(value));});
+    return request<TriageResult>(`/triage?${params}`,{signal});
+  },
   intelligence: (id:string,signal?:AbortSignal) => request<Intelligence>(`/intelligence/${encodeURIComponent(id)}`,{signal}),
   intelligencePage: (ids:string[],signal?:AbortSignal) => request<{items:Record<string,Intelligence>}>(`/intelligence?${new URLSearchParams({cve:ids.join(',')})}`,{signal}),
   intelligenceStatus: (signal?:AbortSignal) => request<IntelligenceStatus>('/intelligence/status',{signal}),

@@ -4,16 +4,18 @@
 
 Apache-2.0 · [Français](README.fr.md) · [Contribute](CONTRIBUTING.md)
 
-**v0.1.0-alpha.1 — First Official Alpha source: P0.1 INTERNATIONAL EDITION + P1-A INTELLIGENCE CORE. Experimental, local and defensive.**
+**P1-B INTELLIGENCE ENGINE — unreleased development branch.** Based on published `v0.1.0-alpha.1`; Intelligence Triage is not yet merged into main and no new Release is created.
 
 | Version | What you install |
 |---|---|
+| [p1b/intelligence-engine](https://github.com/JLV-73/sentinel-x/tree/p1b/intelligence-engine) | Development: consolidated read-only Intelligence Triage and transparent multi-signal filters; not yet in main |
 | [main — First Alpha](https://github.com/JLV-73/sentinel-x/tree/main) | Integrated CISA KEV, targeted NVD/CVSS, FIRST EPSS, bilingual cockpit, search, charts and provenance |
 | [p0.1-international-stable](https://github.com/JLV-73/sentinel-x/tree/p0.1-international-stable) | Frozen CISA-only historical baseline; its tag is not moved |
 | [p1/intelligence-core](https://github.com/JLV-73/sentinel-x/tree/p1/intelligence-core) | Preserved development reference; its existing P1-A features are integrated in this Alpha |
 
-**Source-only Alpha:** GitHub provides the standard source archives. No Windows
-executable, installer, container, hosted service or local database is included.
+**Source-only development checkout:** no P1-B Release or packaged application.
+The existing R1 Alpha remains separate. No Windows executable, installer, container,
+hosted service or local database is included.
 You run the application locally and request official-source data yourself.
 
 ![Actual NIGHTFALL CISA overview](docs/images/overview-en.png)
@@ -32,6 +34,20 @@ You run the application locally and request official-source data yourself.
 No startup collection, autonomous monitoring, scanner, alerting or composite score.
 NVD is not fetched exhaustively. After CISA sync, use a CVE detail's NVD control
 or the Intelligence Sources view's explicit NVD/EPSS controls; GET reads stay local.
+
+## Intelligence Triage — P1-B development
+
+Open **Intelligence Triage** to read KEV, every CVSS version/provider and EPSS
+probability/percentile together. Search, inclusive catalogue date ranges, source
+availability, CVSS/EPSS thresholds and recency criteria combine with AND.
+EPSS input is percent (0–100); the API uses probability (0–1). Missing is never zero.
+Numeric thresholds also examine retained stale/error values: their states, dates
+and provenance stay visible. They are not a recommendation or a composite risk score.
+CISA-only rows remain usable. Filters and detail/back navigation preserve context
+when switching FR/EN. Browsing performs local GETs only, never external collection.
+
+See [the small triage contract](docs/TRIAGE_CONTRACT.md) and the
+[OSV/GHSA future-source study](docs/OSV_GHSA_STUDY.md) — study only, no connector.
 
 ## A. TRY SENTINEL X — QUICK START
 
@@ -62,7 +78,7 @@ This explicitly leaves any initial PowerShell directory and uses your user home.
 
 ```powershell
 if (Test-Path -LiteralPath .\sentinel-x) { throw "sentinel-x already exists. Use a new parent folder; do not delete it." }
-git clone https://github.com/JLV-73/sentinel-x.git
+git clone --branch p1b/intelligence-engine https://github.com/JLV-73/sentinel-x.git
 if ($LASTEXITCODE -ne 0) { throw "Clone failed. Stop here; do not run Python or npm." }
 Set-Location .\sentinel-x
 ```
@@ -79,9 +95,9 @@ Set-Location $AlternativeParent
 
 Step 2 will create a new `sentinel-x` inside that parent; nothing is deleted or overwritten.
 
-To reproduce this exact Alpha after its publication, replace only the clone line
+To reproduce the frozen R1 Alpha instead (without P1-B Triage), replace only the clone line
 in step 2 with the following (a detached HEAD at a release tag is expected).
-Do not clone twice. Ongoing development can use the default main clone above.
+Do not clone twice. The P1-B branch clone above is for development; the Alpha tag is frozen.
 
 ```powershell
 git clone --branch v0.1.0-alpha.1 https://github.com/JLV-73/sentinel-x.git
