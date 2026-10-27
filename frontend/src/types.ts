@@ -41,3 +41,19 @@ export interface IntelligenceCoverage { available:number; with_scores:number; ab
 export interface IntelligenceSourceStatus extends IntelligenceCoverage { source:IntelligenceSource; last_attempt:IntelligenceAttempt|null; last_success:IntelligenceAttempt|null; history:IntelligenceAttempt[]; freshness_hours:number; busy:boolean; endpoint:string }
 export type IntelligenceStatus = Record<IntelligenceSource,IntelligenceSourceStatus>;
 export interface IntelligenceSummary { catalog_total:number; nvd:IntelligenceCoverage; epss:IntelligenceCoverage }
+// Read-only P1-B projection: collection attempt histories remain in detail.
+export type TriageSource<T> = Pick<SourceData<T>,'state'|'stale'|'retained_after_error'|'collected_at'|'source_date'|'data'|'provenance'>;
+export type TriageStateFilter = IntelligenceState|'all'|'needs_attention';
+export interface TriageQuery {
+ q?:string; added_since?:string; added_until?:string; nvd_state?:TriageStateFilter; epss_state?:TriageStateFilter;
+ cvss_availability?:'all'|'scored'|'unscored'; cvss_min?:number; epss_min?:number;
+ recent_days?:number; recent_only?:boolean; sort?:'asc'|'desc'; page?:number; page_size?:number;
+}
+export interface TriageItem {
+ cve_id:string; kev:Vulnerability; nvd:TriageSource<NvdData>; epss:TriageSource<EpssData>;
+ indicators:{recent_kev:boolean;cvss_threshold_met:boolean|null;epss_threshold_met:boolean|null;nvd_needs_enrichment:boolean;epss_needs_enrichment:boolean};
+}
+export interface TriageResult {
+ data_mode:'REAL DATA'|'NO DATA'; as_of_utc:string; catalog_total:number; total:number; page:number; pages:number; page_size:number;
+ filters:TriageQuery; cisa_provenance:ImportRecord|null; items:TriageItem[];
+}

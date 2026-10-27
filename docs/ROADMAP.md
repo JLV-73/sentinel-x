@@ -8,8 +8,8 @@
   and issue/PR templates (historical private preparation).
 - **G2 / PUBLIC SOURCE LAUNCH:** Apache-2.0 source publication and community/security controls; no release, binary, package or hosted service.
 - **R1 / v0.1.0-alpha.1:** integrated First Alpha source and release-candidate verification; source-only pre-release, no new functional module.
-- **P1-B / P1-C:** not implemented. First define a transparent user workflow for
-  the separate KEV/CVSS/EPSS signals and obtain a new Product Owner GO.
+- **P1-B / INTELLIGENCE ENGINE:** developed on `p1b/intelligence-engine` for review; one local read-only multi-signal Triage view, filters and contextual explanations. OSV/GHSA study only. No integration into main or new Release without another GO.
+- **P1-C:** not implemented; future scope requires its own specification and GO.
 - **P2:** not implemented; any web-security-auditor concept remains a future
   specification, not a current URL audit or scanning capability.
 - **P3:** not implemented; scope and delivery model remain undecided.

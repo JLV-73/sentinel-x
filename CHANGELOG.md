@@ -4,6 +4,15 @@ Milestone history, not a semantic-version release series. Application milestones
 
 The First Alpha integrates **P0.1 + P1-A** on its main candidate. The original CISA-only baseline remains frozen at `p0.1-international-stable`; [`p1/intelligence-core`](https://github.com/JLV-73/sentinel-x/tree/p1/intelligence-core) remains a preserved development reference. Earlier milestone entries describe their historical scopes. Clean-publication history is separate from the private local archive.
 
+## Unreleased — P1-B Intelligence Engine — development branch
+
+- Consolidated read-only Intelligence Triage over the existing KEV/NVD/EPSS cache, with independent transparent criteria and no risk score.
+- Search/date/source-state/value filters, preserved metric versions/providers, probability versus percentile, provenance and explicit retained-value semantics.
+- Bilingual NIGHTFALL view connected to existing CVE details; no implicit external collection or schema migration.
+- OSV/GHSA comparative research only; no new provider integrated.
+- Protected main, official Alpha and original operational data preserved; PR-only delivery, no merge or Release.
+- Current P1-B test results belong to the delivery report, not older milestone counts.
+
 ## v0.1.0-alpha.1 — First Official Alpha source — 2026-10-27
 
 - Integrates the existing P0.1 foundation and P1-A intelligence core into one main candidate.

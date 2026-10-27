@@ -9,6 +9,7 @@ from starlette.middleware.cors import CORSMiddleware
 from .service import Service, SyncBusy
 from .intelligence import IntelligenceService
 from .intelligence_api import install_routes
+from .triage import install_triage_route
 
 ORIGINS = ("http://127.0.0.1:5177", "http://127.0.0.1:8007")
 
@@ -39,6 +40,7 @@ def create_app(db_path=None):
     app.state.service = service
     app.state.intelligence = intelligence
     install_routes(app, intelligence, ORIGINS)
+    install_triage_route(app, service)
     app.add_middleware(CORSMiddleware, allow_origins=list(ORIGINS), allow_methods=["GET", "POST"],
                        allow_headers=["X-Sentinel-Request"], allow_credentials=False)
 

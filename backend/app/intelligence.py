@@ -26,6 +26,25 @@ class IntelligenceFailure(Exception):
         super().__init__(attempt["error"] or "Intelligence collection failed")
 
 
+def source_fields(source, cached, target, as_of):
+    """Pure compact P1-A source semantics, with one caller-supplied instant.
+
+    A failed latest target overrides the primary state, but never erases the
+    retained value, provenance, or independent staleness flag. SQL NULL and old
+    JSON-null caches both represent a successful source absence.
+    """
+    data = json.loads(cached["data"]) if cached and cached["data"] is not None else None
+    stale = bool(cached and (as_of - datetime.fromisoformat(cached["collected_at"]) >= timedelta(hours=168 if source == "nvd" else 24)
+                 or (source == "epss" and data and (as_of.date() - datetime.fromisoformat(data["date"]).date()).days > 2)))
+    failed = bool(target and not target["succeeded"])
+    state = ("unavailable" if failed else "not_requested" if cached is None else "stale" if stale
+             else "absent" if data is None else "available")
+    return {"state": state, "stale": stale, "retained_after_error": bool(failed and cached),
+            "collected_at": cached["collected_at"] if cached else None,
+            "source_date": cached["source_date"] if cached else None, "data": data,
+            "provenance": json.loads(cached["provenance"]) if cached else None}
+
+
 class IntelligenceService:
     def __init__(self, cisa):
         self.cisa = cisa
@@ -78,16 +97,7 @@ class IntelligenceService:
     def _view(self, db, source, value):
         cached = db.execute("SELECT * FROM intelligence_cache WHERE source=? AND cve_id=?", (source, value)).fetchone()
         target = db.execute("SELECT attempt_id,succeeded FROM intelligence_targets WHERE source=? AND cve_id=? ORDER BY attempt_id DESC LIMIT 1", (source, value)).fetchone()
-        data = json.loads(cached["data"]) if cached and cached["data"] is not None else None
-        stale = bool(cached and (self.now() - datetime.fromisoformat(cached["collected_at"]) >= timedelta(hours=168 if source == "nvd" else 24)
-                     or (source == "epss" and data and (self.now().date() - datetime.fromisoformat(data["date"]).date()).days > 2)))
-        failed = bool(target and not target["succeeded"])
-        state = ("unavailable" if failed else "not_requested" if cached is None else "stale" if stale
-                 else "absent" if data is None else "available")
-        return {"state": state, "stale": stale, "retained_after_error": bool(failed and cached),
-                "collected_at": cached["collected_at"] if cached else None,
-                "source_date": cached["source_date"] if cached else None, "data": data,
-                "provenance": json.loads(cached["provenance"]) if cached else None,
+        return {**source_fields(source, cached, target, self.now()),
                 "last_attempt": self._attempt(db, target["attempt_id"]) if target else None,
                 "last_success": self._attempt(db, cached["success_id"]) if cached else None}
 
