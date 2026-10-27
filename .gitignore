@@ -1,0 +1,38 @@
+# Project-local runtimes and private operational data
+.venv/
+node_modules/
+.cache/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+frontend/dist/
+frontend/coverage/
+frontend/test-results/
+frontend/playwright-report/
+data/*
+!data/.gitkeep
+docs/evidence/*
+!docs/evidence/.gitkeep
+*.db
+*.db-*
+*.sqlite*
+*.log
+*.pid
+*.zip
+*.tar
+*.gz
+*.7z
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+# No workstation/browser/session/credential exports
+**/composer-pastes/
+**/browser-profile/
+**/auth.json
+**/sessions.json
+**/credentials.json
+
+# Pinned external resource: install locally; never redistribute by Git.
+/backend/app/kev_schema.json

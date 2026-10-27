@@ -1,0 +1,1 @@
+export default { content: ['./index.html','./src/**/*.{ts,tsx}'], theme: { extend: { colors: { nightfall:'#080B12', cyan:'#00D9FF', amber:'#F5B942' }, fontFamily: { sans:['Segoe UI','Arial','sans-serif'], mono:['Cascadia Code','Consolas','monospace'] } } }, plugins: [] };

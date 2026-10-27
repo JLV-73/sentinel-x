@@ -1,0 +1,54 @@
+name: Feature proposal / Proposition d'évolution
+description: An authorized scope discussion, not permission to implement / Une discussion, pas une autorisation
+title: "[Proposal] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A proposal does not authorize implementation, source collection, external writes, a merge, a release or public exposure.
+        Keep private information out. Security findings follow the Security policy, not this form.
+        Une proposition ne vaut pas GO. Aucune donnée privée ni vulnérabilité dans ce formulaire.
+  - type: dropdown
+    id: target
+    attributes:
+      label: Proposed target / Cible proposée
+      options:
+        - P0.1 stable maintenance (main)
+        - P1-A development (p1/intelligence-core)
+        - Future scope (requires explicit JLV GO)
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and intended user benefit / Problème et utilité
+      description: Use a sanitized example; do not attach private datasets or audit material.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change and alternatives / Proposition et alternatives
+    validations:
+      required: true
+  - type: textarea
+    id: boundaries
+    attributes:
+      label: Scope, data and security impact / Périmètre, données et sécurité
+      description: State any proposed dependencies, network requests, external writes, cost, exposure or storage change. These need owner review and authorization, not automatic execution.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance and local validation / Acceptation et validation locale
+      description: Define observable results, FR/EN implications and non-goals.
+    validations:
+      required: true
+  - type: checkboxes
+    id: authorization
+    attributes:
+      label: Authorization boundary / Limite d'autorisation
+      options:
+        - label: I understand this proposal is not an implementation, merge, release or visibility GO / Cette proposition ne vaut pas GO
+          required: true

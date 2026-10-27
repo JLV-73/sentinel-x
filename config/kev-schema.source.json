@@ -1,0 +1,5 @@
+{
+  "url": "https://raw.githubusercontent.com/cisagov/kev-data/d98075f22b11ca60ede428f4397966d3523dc692/known_exploited_vulnerabilities_schema.json",
+  "sha256": "0d5865c98694c5bfba2c78a26caf814f406b3fce8bfb81bef79e99c7f288b0e7",
+  "reason": "External validation resource; no schema redistribution or license-scope assumption in GitHub export"
+}

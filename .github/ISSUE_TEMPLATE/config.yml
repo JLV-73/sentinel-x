@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security reporting policy / Signalement de sécurité
+    url: https://github.com/JLV-73/sentinel-x/security/policy
+    about: Read the private reporting options. Use GitHub private reporting only if offered; otherwise an established private owner channel. Never file details as an issue.

@@ -1,0 +1,59 @@
+name: Bug report / Signaler un bug
+description: A non-sensitive functional bug / Un bug fonctionnel sans donnée sensible
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For authorized private collaboration only. Security findings must follow the Security policy, not this form.
+        Never include secrets, private computer paths, databases, raw source dumps or unredacted logs/screenshots.
+        Collaboration privée autorisée uniquement. Aucun secret, chemin privé, dump ou détail de vulnérabilité ici.
+  - type: checkboxes
+    id: safe-report
+    attributes:
+      label: Safe report / Signalement sans donnée sensible
+      options:
+        - label: This is not a security vulnerability and I removed sensitive information / Aucun détail de vulnérabilité ni donnée sensible
+          required: true
+  - type: dropdown
+    id: milestone
+    attributes:
+      label: Affected milestone / Jalon concerné
+      options:
+        - P0.1 stable (main)
+        - P1-A development (p1/intelligence-core)
+        - Other authorized checkout (specify below)
+    validations:
+      required: true
+  - type: input
+    id: revision
+    attributes:
+      label: Branch and commit / Branche et commit
+      description: Identifiers only, no checkout path / Identifiants uniquement, sans chemin privé
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction / Reproduction minimale
+      description: Numbered local steps using sanitized examples; no source collection unless already authorized.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior / Résultat attendu et observé
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Relevant environment / Environnement utile
+      description: OS, Python/Node versions and interface language only; omit usernames, machine names and private paths.
+    validations:
+      required: true
+  - type: textarea
+    id: checks
+    attributes:
+      label: Local checks / Vérifications locales
+      description: Commands and sanitized pass/fail summaries; state what was not run. Do not paste raw logs.

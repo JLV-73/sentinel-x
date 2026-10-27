@@ -1,0 +1,5 @@
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.png binary
+# Official downloaded schema must preserve its exact SHA-256 bytes.
+/backend/app/kev_schema.json -text
