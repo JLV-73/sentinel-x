@@ -7,6 +7,8 @@ from datetime import date
 from starlette.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 from .service import Service, SyncBusy
+from .intelligence import IntelligenceService
+from .intelligence_api import install_routes
 
 ORIGINS = ("http://127.0.0.1:5177", "http://127.0.0.1:8007")
 
@@ -25,13 +27,18 @@ async def authorize_sync(request: Request):
 def create_app(db_path=None):
     service = Service(db_path or Path(__file__).resolve().parents[2] / "data" / "sentinel.db")
 
+    intelligence = IntelligenceService(service)
+
     @asynccontextmanager
     async def lifespan(app):
         service.initialize()
+        intelligence.initialize()
         yield
 
     app = FastAPI(title="SENTINEL X", lifespan=lifespan)
     app.state.service = service
+    app.state.intelligence = intelligence
+    install_routes(app, intelligence, ORIGINS)
     app.add_middleware(CORSMiddleware, allow_origins=list(ORIGINS), allow_methods=["GET", "POST"],
                        allow_headers=["X-Sentinel-Request"], allow_credentials=False)
 

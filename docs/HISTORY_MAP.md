@@ -4,7 +4,7 @@ This repository has a deliberately new Git history. The original local project
 history contained private workstation/operational evidence and was not uploaded.
 The original history, branches and tag remain intact in the private local archive.
 
-| Original source reference | Clean publication reference | Meaning |
+| Original source reference | G1 publication reference (historical) | Meaning |
 |---|---|---|
 | `595fc494068d4a3b9991e93cc76c69927dca4bb3` | `main` / `p0.1-international-stable` | P0.1 source snapshot plus publication documentation |
 | `cbab06febc7ec69f5bde18d86d5f5811bc4742c9` | `p1/intelligence-core` | P1-A source snapshot plus publication documentation |
@@ -14,8 +14,9 @@ frontend source, application tests, dependency locks and selected portable
 operational scripts are copied byte-for-byte from the stated source references.
 Documentation and Git packaging are prepared for this separate repository.
 
-No P1-A application code is merged into main. The clean P1-A branch starts from
-the clean P0.1 publication snapshot, preserving the stable/development boundary.
+At G1 publication, no P1-A application code was merged into main. The clean P1-A
+branch started from the clean P0.1 snapshot. R1 later integrates that existing
+application code while preserving the immutable historical tag.
 The sole runtime validation resource is not redistributed: a pinned, SHA-256
 verified installer retrieves the exact historical schema bytes locally. This is
 an explicit external prerequisite, not a modification of the collectors or UI.
@@ -37,3 +38,11 @@ Apache-2.0 now covers JLV-owned original code also in the earlier clean snapshot
 old pending-license wording describes the prior decision state. See COPYRIGHT.md
 and NOTICE at the current branch root. Original private local history is never
 uploaded; only the already-sanitized publication history becomes public.
+
+## R1 integration
+
+The First Alpha integration branch merges the existing P1-A reference into the
+post-D1 main source. Only README conflicts are resolved; D1 command blocks and
+backup instructions are preserved. Historical references/tags are not rewritten.
+The PR and final tag/merge commit are recorded in the release report; publication
+requires the exact tested candidate tree and the applicable GitHub approval.

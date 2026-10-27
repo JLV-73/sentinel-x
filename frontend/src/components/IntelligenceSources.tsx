@@ -1,0 +1,19 @@
+import {useEffect,useState} from 'react';
+import {api} from '../api';
+import {useApi} from '../hooks';
+import {sameAttempt,useVerifiedCollection} from '../intelligenceHooks';
+import {useI18n} from '../i18n';
+import type {IntelligenceSource,IntelligenceStatus} from '../types';
+import {SafeLink} from './UI';
+import {AttemptDetails,Field,IntelligenceError,stateKeys} from './IntelligenceShared';
+export default function IntelligenceSources({revision}:{revision:number}) {
+ const {t,number}=useI18n();
+ const [retry,setRetry]=useState(0);
+ const resource=useApi(signal=>api.intelligenceStatus(signal),`intelligence-status-${revision}-${retry}`);
+ const [snapshot,setSnapshot]=useState<IntelligenceStatus|null>(null);
+ useEffect(()=>{if(resource.data)setSnapshot(resource.data);},[resource.data]);
+ const data=snapshot??resource.data;
+ const action=useVerifiedCollection({write:api.fetchEpss,read:api.intelligenceStatus,apply:setSnapshot,invalidate:resource.invalidate,cleanupDeferred:result=>result.cleanup_deferred===true,
+  verify:(result,current)=>result.source==='epss'&&sameAttempt(result,current.epss.last_attempt),status:(result)=>result.status});
+ return <section className="intelligence-sources" aria-label={t('intelSources')}><div className="intel-source-heading"><h2>{t('intelSources')}</h2><button className="button" onClick={()=>setRetry(v=>v+1)} disabled={action.busy||resource.loading}>{t('intelStatusRetry')}</button></div><p className="muted">{t('intelManualOnly')}</p>{resource.loading&&!data&&<p role="status">{t('intelLoading')}</p>}{resource.error&&<div><p className="intel-warning">{t(data?'intelStatusStale':'intelReadError')}</p><IntelligenceError error={resource.error}/></div>}{data&&<div className="intel-sources-grid">{(['nvd','epss'] as IntelligenceSource[]).map(source=>{const value=data[source];return <section className="panel intelligence-panel" key={source} data-testid={`source-${source}`}><div className="panel-heading"><h3>{t(source==='nvd'?'intelNvd':'intelEpss')}</h3></div><div className="intel-content"><p>{t(source==='nvd'?'intelNvdControl':'intelEpssControl')}</p>{source==='nvd'&&<aside className="intel-notice"><strong>{t('intelNvdNoticeLabel')}</strong><p lang="en">{t('intelNvdNotice')}</p></aside>}{source==='epss'&&<><button className="button primary" data-testid="epss-action" disabled={action.busy||value.busy||resource.loading} onClick={action.run}>{t(action.busy||value.busy?'intelFetching':'intelEpssCollect')}</button>{action.message&&<p className={action.message==='intelVerified'?'text-cyan':'intel-warning'} role={action.message==='intelVerified'?'status':'alert'}>{t(action.message)}</p>}{action.leaseDeferred&&<p className="intel-warning" role="alert">{t('intelCleanupDeferred')}</p>}{action.problem&&<IntelligenceError error={action.problem}/>}</>}<h4>{t('intelCoverage')}</h4><p className="intel-coverage-summary" data-testid={`${source}-coverage`}>{t('intelCoverageFraction',{withScores:number(value.with_scores),total:number(value.available+value.absent+value.unavailable+value.stale+value.not_requested)})}</p><p className="muted">{t('intelCoverageScope')}</p><dl className="intel-fields intel-coverage">{(['available','absent','unavailable','stale','not_requested'] as const).map(state=><Field label={t(stateKeys[state])} key={state}>{number(value[state])}</Field>)}<Field label={t('intelWithScores')}>{number(value.with_scores)}</Field><Field label={t('intelFreshness')}>{number(value.freshness_hours)}</Field></dl><SafeLink href={value.endpoint}>{value.endpoint}</SafeLink><h4>{t('intelLastAttempt')}</h4><AttemptDetails value={value.last_attempt}/><h4>{t('intelLastSuccess')}</h4><AttemptDetails value={value.last_success}/><details className="intel-json"><summary>{t('intelHistory')}</summary>{value.history.length?value.history.map(attempt=><AttemptDetails key={attempt.id} value={attempt}/>):<p>{t('intelNoAttempt')}</p>}</details></div></section>;})}</div>}</section>;
+}

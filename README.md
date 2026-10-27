@@ -4,18 +4,34 @@
 
 Apache-2.0 · [Français](README.fr.md) · [Contribute](CONTRIBUTING.md)
 
-**You are reading MAIN — P0.1 INTERNATIONAL EDITION (stable).**
+**v0.1.0-alpha.1 — First Official Alpha source: P0.1 INTERNATIONAL EDITION + P1-A INTELLIGENCE CORE. Experimental, local and defensive.**
 
 | Version | What you install |
 |---|---|
-| [main — P0.1 INTERNATIONAL EDITION](https://github.com/JLV-73/sentinel-x/tree/main) | Stable CISA KEV catalogue, bilingual cockpit, search, charts and source provenance |
-| [P1-A — INTELLIGENCE CORE](https://github.com/JLV-73/sentinel-x/tree/p1/intelligence-core) | Experimental branch adding targeted NVD/CVSS and FIRST EPSS; **not merged into main** |
+| [main — First Alpha](https://github.com/JLV-73/sentinel-x/tree/main) | Integrated CISA KEV, targeted NVD/CVSS, FIRST EPSS, bilingual cockpit, search, charts and provenance |
+| [p0.1-international-stable](https://github.com/JLV-73/sentinel-x/tree/p0.1-international-stable) | Frozen CISA-only historical baseline; its tag is not moved |
+| [p1/intelligence-core](https://github.com/JLV-73/sentinel-x/tree/p1/intelligence-core) | Preserved development reference; its existing P1-A features are integrated in this Alpha |
 
-Source code only: **no official Release, Windows executable, hosted service or
-local database is included**. You run the application locally and request data yourself.
+**Source-only Alpha:** GitHub provides the standard source archives. No Windows
+executable, installer, container, hosted service or local database is included.
+You run the application locally and request official-source data yourself.
 
 ![Actual NIGHTFALL CISA overview](docs/images/overview-en.png)
 *Real, dated CISA validation capture — not a live attack feed or personal-device diagnosis.*
+
+## Included intelligence — separate signals, no invented risk score
+
+- **CISA KEV:** validated manual catalogue import, search/filter/pagination/CVE
+  details, charts of catalogue additions, provenance and last-valid-data retention.
+- **NVD/CVSS:** manual targeted enrichment for an existing local KEV CVE;
+  severity/vector/version/provider remain distinct, with availability/freshness.
+- **FIRST EPSS:** manual refresh for local KEV identifiers; 30-day exploitation
+  probability, percentile, source date and provenance remain separate.
+- **NIGHTFALL:** FR/EN cockpit, source-control view, FastAPI/SQLite and React/TypeScript.
+
+No startup collection, autonomous monitoring, scanner, alerting or composite score.
+NVD is not fetched exhaustively. After CISA sync, use a CVE detail's NVD control
+or the Intelligence Sources view's explicit NVD/EPSS controls; GET reads stay local.
 
 ## A. TRY SENTINEL X — QUICK START
 
@@ -62,6 +78,14 @@ Set-Location $AlternativeParent
 ```
 
 Step 2 will create a new `sentinel-x` inside that parent; nothing is deleted or overwritten.
+
+To reproduce this exact Alpha after its publication, replace only the clone line
+in step 2 with the following (a detached HEAD at a release tag is expected).
+Do not clone twice. Ongoing development can use the default main clone above.
+
+```powershell
+git clone --branch v0.1.0-alpha.1 https://github.com/JLV-73/sentinel-x.git
+```
 
 ### 3. Install project-local dependencies
 

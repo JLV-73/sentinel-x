@@ -4,10 +4,11 @@ SENTINEL X is a local defensive intelligence prototype, not an asset scanner.
 
 | Reference | Implemented scope |
 |---|---|
-| `main` / `p0.1-international-stable` | P0.1: CISA KEV ingestion, SQLite, API, bilingual NIGHTFALL cockpit |
+| `main` / `v0.1.0-alpha.1` source | First Alpha: P0.1 foundation plus P1-A NVD/CVSS and FIRST EPSS |
+| `p0.1-international-stable` | Frozen historical CISA-only P0.1 foundation |
 | `p1/intelligence-core` | P1-A: the stable foundation plus targeted NVD/CVSS and FIRST EPSS enrichment |
 
-P1-A is not merged into stable main. Read the README for the checked-out branch.
+P1-A is integrated into the First Alpha; its development reference and the historical P0.1 tag remain preserved. Read the README for the checked-out reference.
 
 ## Shared foundation
 
@@ -21,7 +22,7 @@ Both development servers bind only `127.0.0.1` (frontend 5177, backend 8007).
 Write endpoints enforce Host/Origin and a custom request header. This is a
 single-user local boundary, not multi-user authentication or public hardening.
 
-## P1-A extension — development branch only
+## P1-A extension — included in the First Alpha
 
 Separate SQLite tables preserve NVD/EPSS data, attempts, freshness and raw-reply
 provenance. Local GETs never fetch upstream data. NVD is fetched/refreshed

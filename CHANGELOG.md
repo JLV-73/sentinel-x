@@ -2,7 +2,17 @@
 
 Milestone history, not a semantic-version release series. Application milestones below are dated **2026-10-26**; GitHub Foundation is dated **2026-10-27**. These entries record completed local development/validation at the time; they do not claim a GitHub Release has been published or that checks were rerun for a later checkout.
 
-`main` carries stable **P0.1**. **P1-A** is separate development on [`p1/intelligence-core`](https://github.com/JLV-73/sentinel-x/tree/p1/intelligence-core); its capabilities are not present on stable `main`. The stable reference is `p0.1-international-stable`. Clean-publication commits are new sanitized history, not a push of original local history.
+The First Alpha integrates **P0.1 + P1-A** on its main candidate. The original CISA-only baseline remains frozen at `p0.1-international-stable`; [`p1/intelligence-core`](https://github.com/JLV-73/sentinel-x/tree/p1/intelligence-core) remains a preserved development reference. Earlier milestone entries describe their historical scopes. Clean-publication history is separate from the private local archive.
+
+## v0.1.0-alpha.1 — First Official Alpha source — 2026-10-27
+
+- Integrates the existing P0.1 foundation and P1-A intelligence core into one main candidate.
+- Includes manual CISA KEV, targeted NVD/CVSS and FIRST EPSS with separate provenance/freshness.
+- Preserves D1 writable-home Windows setup, failure guards, npm.cmd, local backup and contribution paths.
+- Resolves README-only merge conflicts by preserving D1 and updating the version presentation.
+- No new functional module, scanner, autonomous alert/AI, hosted service or bundled runtime data.
+- Intended publication is a source-only GitHub pre-release after candidate verification and required approval.
+- Community issues #3 and #4 remain open and outside R1.
 
 ## G2 — Public repository launch — 2026-10-27
 
@@ -42,4 +52,4 @@ Milestone history, not a semantic-version release series. Application milestones
 - Recorded validation: **59 backend**, **27 frontend**, **8 operations tests** (also 8 under optimized Python), and successful frontend build.
 - Charts represent catalogue additions, not attacks; no device-vulnerability inference or general legal-duty claim.
 
-**Français :** historique de jalons locaux, pas de versions publiées. `main` reste en P0.1 stable ; P1-A et ses connecteurs supplémentaires restent sur la branche de développement. Les résultats et comptes de sources sont des observations datées, pas des garanties actuelles.
+**Français :** les premiers jalons décrivent leur périmètre historique. La première Alpha intègre P0.1 et P1-A ; le tag P0.1 reste figé. Les anciens résultats et comptes de sources sont datés, pas des garanties de recette R1.

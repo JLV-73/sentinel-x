@@ -27,3 +27,27 @@
 @media(max-width:760px){.topbar{height:auto;min-height:52px;gap:8px;flex-wrap:wrap;padding-top:6px;padding-bottom:6px}.connection{flex-wrap:wrap;justify-content:flex-end;gap:6px;margin-left:auto}.connection>span:not(.status-dot){display:none}.language-switch{margin-left:0}.language-switch button{min-height:44px;min-width:44px}.sidebar nav>a{font-size:12px}.heading-actions .button{font-size:0}.reset-button{font-size:0}.page-heading .eyebrow{font-size:11px}.brand small{font-size:11px}.pagination{flex-wrap:wrap}.pagination select{width:64px}.brand{padding-bottom:12px}}
 
 .detail-heading-id{display:block;color:#9bb0c9;font-size:14px;line-height:1.7;letter-spacing:0;margin-top:5px}
+
+/* P1-A: additive source panels; no changes to the P0 CISA layout. */
+.intelligence-panel,.intelligence-sources{font-size:14px;line-height:1.75;min-width:0}
+.intelligence-panel h2,.intelligence-panel h3,.intelligence-sources h2{font-size:16px;line-height:1.5}
+.intelligence-panel h4{font-size:14px;line-height:1.6;margin:6px 0 0;font-weight:600}
+.intel-content{padding:0 21px 22px;display:grid;gap:14px;min-width:0}
+.intel-content .official-marker{margin:0 0 8px;font-size:12px}
+.intel-dimension{border:1px solid var(--line);border-radius:4px;padding:18px;display:grid;gap:14px;min-width:0;background:var(--bg)}
+.intel-dimension h3{color:#dceafa;margin:0}.intel-source-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.intelligence-panel .button,.intelligence-sources .button{font-size:14px;min-height:44px;white-space:normal;text-align:center}
+.intel-fields{margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px;min-width:0}
+.intel-fields>div{min-width:0}.intel-fields dt{color:var(--muted);font-size:13px}.intel-fields dd{margin:4px 0 0;overflow-wrap:anywhere;font-size:14px;color:#d9e5f4}
+.intel-fields code,.intel-content a{overflow-wrap:anywhere;word-break:break-word}.intel-content a{color:var(--cyan)}
+.intel-state{display:flex;flex-wrap:wrap;gap:8px}.intelligence-panel .tag{font-size:12px;line-height:1.65}
+.intel-warning{color:var(--amber);border-left:3px solid var(--amber);padding:10px 12px;background:#f5b94208;border-radius:2px}
+.intel-score{border-top:1px solid var(--line);padding-top:15px;min-width:0}.intel-score .intel-fields{margin-top:12px}.intel-score-value{font-size:24px;font-weight:600;color:var(--cyan);font-variant-numeric:tabular-nums}.intel-description{white-space:pre-wrap;overflow-wrap:anywhere}
+.intel-json{border-top:1px solid var(--line);min-width:0}.intel-json summary,.intelligence-panel .technical-details summary{min-height:44px;padding:10px 0;cursor:pointer;color:#b8cee3;font-size:14px;overflow-wrap:anywhere}
+.intel-json .intel-json{margin-left:10px}.intel-json pre{font:13px/1.8 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;max-height:480px;overflow:auto;background:var(--panel);padding:14px;margin:0 0 12px;border:1px solid var(--line);border-radius:3px}
+.intel-json .intel-fields{padding:8px 0 16px}.intelligence-panel .technical-details pre{font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}
+.intelligence-sources{display:grid;gap:16px;margin-top:26px}.intel-sources-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:start;min-width:0}
+.intel-notice{border:1px solid var(--line);background:var(--raised);border-radius:3px;padding:14px}.intel-notice strong{font-size:13px;color:var(--muted);font-weight:500}.intel-notice p{margin-top:8px;font-size:14px}
+.intel-indicators{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px}.intel-indicator{font-size:12px;line-height:1.7;overflow-wrap:anywhere}.intel-catalogue-feedback{padding:10px 17px;color:var(--amber);font-size:14px;line-height:1.7}.intel-catalogue-feedback button{min-height:44px}
+@media(max-width:1050px){.intel-sources-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:760px){.intel-content{padding:0 17px 18px}.intel-dimension{padding:14px}.intel-fields{grid-template-columns:minmax(0,1fr)}.intel-source-heading{align-items:flex-start;flex-direction:column}.intel-source-heading .button{width:100%}.intel-indicators{display:grid;gap:2px}.intel-sources-grid{gap:18px}}
