@@ -1,104 +1,144 @@
 # SENTINEL X — NIGHTFALL
 
-**Defensive cyber intelligence, with traceable facts rather than simulated threats.**  
-JLV LABS · Experimental defensive open-source prototype · Apache-2.0 · [Français](README.fr.md)
+**Experimental defensive open-source cyber intelligence by JLV LABS.**
 
-**Stable P0.1 — INTERNATIONAL EDITION.** This main branch includes CISA KEV only. NVD/CVSS and FIRST EPSS enrichment are on the separate `p1/intelligence-core` branch, not here.
+Apache-2.0 · [Français](README.fr.md) · [Contribute](CONTRIBUTING.md)
 
-![Genuine NIGHTFALL CISA overview capture](docs/images/overview-en.png)
+**You are reading MAIN — P0.1 INTERNATIONAL EDITION (stable).**
 
-*App-only capture from actual CISA validation; dated source content, not a live
-attack feed. No raw catalogue, runtime database or private workstation evidence is shipped.*
+| Version | What you install |
+|---|---|
+| [main — P0.1 INTERNATIONAL EDITION](https://github.com/JLV-73/sentinel-x/tree/main) | Stable CISA KEV catalogue, bilingual cockpit, search, charts and source provenance |
+| [P1-A — INTELLIGENCE CORE](https://github.com/JLV-73/sentinel-x/tree/p1/intelligence-core) | Experimental branch adding targeted NVD/CVSS and FIRST EPSS; **not merged into main** |
 
-## What works
+Source code only: **no official Release, Windows executable, hosted service or
+local database is included**. You run the application locally and request data yourself.
 
-- English/French NIGHTFALL cockpit, overview charts and CISA catalogue.
-- Search, filters, pagination and detailed CVE records.
-- Manual CISA sync: validation, atomic SQLite import, idempotence and SHA-256/source provenance.
-- Explicit empty/error/stale states; failed sync preserves previously validated data.
-- Local FastAPI/SQLite backend and React/TypeScript/Vite/Tailwind/ECharts frontend.
+![Actual NIGHTFALL CISA overview](docs/images/overview-en.png)
+*Real, dated CISA validation capture — not a live attack feed or personal-device diagnosis.*
 
+## A. TRY SENTINEL X — QUICK START
 
-## Install and run — Windows 11
+### 1. Open normal PowerShell and verify prerequisites
 
-Prerequisites: Git, Python **3.11** and
-Node.js **24** with npm. These are prerequisites, not globally installed by the
-project. Python/npm dependencies stay inside the checkout. Use a normal local
-filesystem supporting hard links for the atomic schema installation.
-
-Open **PowerShell**, not a Python prompt, and choose a dedicated directory:
+Windows 11, Git, **Python 3.11**, **Node.js 24** and npm are required. Use normal
+PowerShell, **not administrator mode**. Do not start an installation in Program
+Files, Windows or another protected directory. Run each numbered step separately;
+**if anything fails, stop there** instead of running the following steps.
 
 ```powershell
+$ErrorActionPreference = "Stop"
+Set-Location $HOME
+git --version
+if ($LASTEXITCODE -ne 0) { throw "Git check failed. Stop here." }
+py -3.11 --version
+if ($LASTEXITCODE -ne 0) { throw "Python 3.11 is required. Stop here." }
+node --version
+if ($LASTEXITCODE -ne 0) { throw "Node.js 24 is required. Stop here." }
+npm.cmd --version
+if ($LASTEXITCODE -ne 0) { throw "npm check failed. Stop here." }
+```
+
+The outputs must show Git, Python `3.11.x`, Node `v24.x` and an npm version.
+This explicitly leaves any initial PowerShell directory and uses your user home.
+
+### 2. Download this version
+
+```powershell
+if (Test-Path -LiteralPath .\sentinel-x) { throw "sentinel-x already exists. Use a new parent folder; do not delete it." }
 git clone https://github.com/JLV-73/sentinel-x.git
-cd sentinel-x
+if ($LASTEXITCODE -ne 0) { throw "Clone failed. Stop here; do not run Python or npm." }
+Set-Location .\sentinel-x
+```
+
+**Already have a `sentinel-x` folder?** Keep it. Before retrying step 2, select a
+fresh parent, for example with the following optional block (use another unused
+name if `sentinel-x-work` already exists). Do **not** rerun step 1 afterwards.
+
+```powershell
+$AlternativeParent = Join-Path $HOME "sentinel-x-work"
+New-Item -ItemType Directory -Path $AlternativeParent -ErrorAction Stop | Out-Null
+Set-Location $AlternativeParent
+```
+
+Step 2 will create a new `sentinel-x` inside that parent; nothing is deleted or overwritten.
+
+### 3. Install project-local dependencies
+
+Run from the **new clone root** reached in step 2:
+
+```powershell
 py -3.11 -m venv .venv
+if ($LASTEXITCODE -ne 0) { throw "venv creation failed. Stop here." }
 New-Item -ItemType Directory -Force -Path .cache/pip,.cache/tmp | Out-Null
 $env:TEMP = Join-Path (Get-Location) ".cache/tmp"
 $env:TMP = $env:TEMP
 .\.venv\Scripts\python.exe -I -m pip --isolated install --cache-dir .cache/pip -r backend/requirements-lock.txt
+if ($LASTEXITCODE -ne 0) { throw "Python dependency install failed. Stop here." }
 .\.venv\Scripts\python.exe -I tools/bootstrap_schema.py
-npm --prefix frontend ci
+if ($LASTEXITCODE -ne 0) { throw "Schema bootstrap failed. Stop here." }
+npm.cmd --prefix frontend ci
+if ($LASTEXITCODE -ne 0) { throw "npm install failed. Stop here." }
+```
+
+Versions stay locked. The venv, npm dependencies and caches are inside the clone.
+`TEMP`/`TMP` affect only this PowerShell session. The schema is an external resource:
+bootstrap checks its pinned official revision and SHA-256, never overwriting a
+different existing file. See [schema setup](docs/SCHEMA_SETUP.md). No API key is needed.
+
+### 4. Start, open the cockpit, then initialize CISA
+
+```powershell
 .\START_SENTINEL.cmd
 ```
 
-`TEMP`/`TMP` above change only this PowerShell session, not Windows global settings.
-The bootstrap obtains a pinned official validation schema **locally**, verifies its
-SHA-256 and never overwrites existing different bytes. This external resource is
-intentionally not redistributed; see [schema setup](docs/SCHEMA_SETUP.md).
+Keep that console open. Open **http://127.0.0.1:5177** yourself in a browser.
+API health: http://127.0.0.1:8007/api/health . The launcher opens no browser and installs no service.
 
-Open http://127.0.0.1:5177 in your browser yourself. API health:
-http://127.0.0.1:8007/api/health . The launcher opens no personal browser, installs
-no service and refuses occupied ports instead of killing another process.
+**NO DATA is expected in a fresh installation.** In the cockpit, open
+**DATA CONTROL** (or **CONTRÔLE DES DONNÉES**) and use the manual **Synchronize CISA**
+action. Internet access is required. After success, the catalogue/charts populate
+with validated official data. Startup does not collect sources; demo fixtures
+never silently feed real indicators. A failed collection preserves any prior valid data.
 
-A fresh checkout starts with **NO DATA**. Use **DATA CONTROL → Synchronize CISA**
-once; network access is necessary and official access restrictions are respected.
-No demo data silently feeds real indicators, and startup does not collect sources.
+Stop with **Ctrl+C in the launcher console**; confirm if Windows asks. Both servers
+bind only `127.0.0.1`. Never expose them publicly or kill another app to free a port.
 
-**Stop:** press Ctrl+C in the launcher console; confirm termination if Windows asks.
-Do not expose these development servers beyond `127.0.0.1` or enable tunnels.
+## B. CONTRIBUTE TO SENTINEL X
 
-## Verify
+**Fork → Clone → Branch → Changes → Tests → Pull Request.**
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for the exact workflow, target branch,
+local checks, main's current protection and Apache-2.0 contribution terms.
+Changes need review and validation before integration; **no automatic merge**.
+Security findings use [private reporting](SECURITY.md), not ordinary public Issues.
 
-```powershell
-.\.venv\Scripts\python.exe -I -m pytest backend/tests -q
-.\.venv\Scripts\python.exe -I -m unittest discover -s scripts -p "test*.py" -v
-.\.venv\Scripts\python.exe -I -m unittest discover -s tools -p "test*.py" -v
-npm --prefix frontend test
-npm --prefix frontend run build
-```
+## C. TROUBLESHOOTING
 
-Tests use isolated fixtures, not your runtime database. These commands do not
-launch browser recipes or refresh official feeds. The historical suites passed
-for this source snapshot; see [verification](docs/VERIFICATION.md).
+| Symptom | Short response |
+|---|---|
+| `Permission denied` during clone | Stop. Use `Set-Location $HOME`, or a fresh writable parent as above, then retry step 2. Do not use admin mode. |
+| Existing `sentinel-x` folder | Keep it; use the alternative-parent block, then step 2. Never delete an installation to retry blindly. |
+| Python 3.11 not found | Check `py --list`; install/select Python 3.11 from the official Python distribution, then reopen PowerShell. Do not reuse an unrelated venv. |
+| Node/npm unavailable | Confirm Node.js 24 with npm is installed and on PATH; reopen PowerShell. Do not continue until both checks work. |
+| `npm.ps1` blocked | Use **`npm.cmd`**, as these commands already do. No global execution-policy change is needed. |
+| Dependency install fails | Stop at that step; keep the first error and check connectivity/version availability. Do not change lockfiles to force success. |
+| Bootstrap/SHA-256 failure | Stop. Check official-source access/connectivity, keep any previous file, and report the error. Never disable TLS or replace the expected hash. |
+| Port 5177/8007 occupied | Stop the test launch; close only your own known earlier SENTINEL console, or ask the port owner's administrator. Never terminate an unknown process. |
+| Cockpit shows NO DATA | First installation has no database. Run the manual CISA sync; if it fails, read DATA CONTROL's attempt/error state. |
 
-**On-demand backup:** `.\.venv\Scripts\python.exe -I scripts/backup.py` creates a
-SQLite online backup under `data/backups/` with source files and SHA-256 manifest.
-Restore and verify in a separate directory before replacing runtime data. Never
-commit databases, raw caches, backups, environments or dependency trees.
+## Details and boundaries
 
-## Read next
+[Architecture](docs/ARCHITECTURE.md) · [Sources](docs/SOURCES.md) ·
+[Roadmap](docs/ROADMAP.md) · [Verification](docs/VERIFICATION.md) · [Changelog](CHANGELOG.md)
 
-[Architecture](docs/ARCHITECTURE.md) · [Sources and interpretation](docs/SOURCES.md) ·
-[Roadmap](docs/ROADMAP.md) · [Clean-history map](docs/HISTORY_MAP.md) ·
-[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) ·
-[Changelog](CHANGELOG.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
+No scanner, exploit, automatic inventory/alert, autonomous AI, hosted dashboard or
+multi-user authentication is implemented. CISA additions are not attack counts;
+CISA due dates are not general French legal deadlines. P1-A signals remain separate,
+with quotas/freshness and documented prototype limits. Future phases are roadmap,
+not delivered features. Source texts/identifiers are not translated.
 
-## Boundaries and license
-
-This is a local, single-user defensive prototype: no scanner, exploit, asset
-inventory, automatic alerts, autonomous AI, telemetry connector, public deployment
-or multi-user authentication. A KEV entry does not establish that your devices
-are vulnerable; CISA due dates are not general French legal deadlines.
-
-Current limits include a large frontend bundle and a dependency deprecation
-warning. P1-A adds provider quotas, cooperative—not absolute—network deadlines,
-partial NVD coverage, cache freshness and a deprecated-but-tested NVD parameter;
-its source integration must be reviewed before any scaled data redistribution.
-
-**Licensed under [Apache License 2.0](LICENSE)** for original project code owned by JLV LABS.
-Retain [NOTICE](NOTICE); third-party terms remain separate. See
-[license scope](COPYRIGHT.md) and [contribution rules](CONTRIBUTING.md).
-No runtime database, raw source cache or packaged dependency tree is included.
-Code is public; no hosted service, release, package or binary is offered.
-Structural merges, releases and future visibility changes still require JLV GO.
-Package-manifest version numbers are not release claims.
+[Apache License 2.0](LICENSE) covers JLV-owned original code; retain [NOTICE](NOTICE).
+[Copyright scope](COPYRIGHT.md) and [third-party notices](THIRD_PARTY_NOTICES.md)
+remain separate. No raw source cache or packaged dependency tree is distributed.
+On-demand backup instructions and contributor test commands remain in the existing
+[architecture](docs/ARCHITECTURE.md) and [contribution guide](CONTRIBUTING.md).

@@ -1,107 +1,146 @@
 # SENTINEL X — NIGHTFALL
 
-**Renseignement cyber défensif : des faits traçables, pas de menaces simulées.**  
-JLV LABS · Prototype open source expérimental et défensif · Apache-2.0 · [English](README.md)
+**Prototype open source expérimental de renseignement cyber défensif — JLV LABS.**
 
-**Référence stable P0.1 — INTERNATIONAL EDITION.** Cette branche main utilise uniquement CISA KEV. Les enrichissements NVD/CVSS et FIRST EPSS appartiennent à la branche distincte `p1/intelligence-core`.
+Apache-2.0 · [English](README.md) · [Contribuer](CONTRIBUTING.md)
 
-![Capture réelle du cockpit NIGHTFALL — CISA](docs/images/overview-en.png)
+**Tu lis MAIN — P0.1 INTERNATIONAL EDITION (stable).**
 
-*Capture applicative d'une validation réelle CISA : contenu daté, pas un flux
-d'attaques en direct. Aucune base locale, donnée brute ou preuve privée du poste n'est livrée.*
+| Version | Ce qui est installé |
+|---|---|
+| [main — P0.1 INTERNATIONAL EDITION](https://github.com/JLV-73/sentinel-x/tree/main) | Catalogue CISA KEV stable, cockpit bilingue, recherche, graphiques et provenance |
+| [P1-A — INTELLIGENCE CORE](https://github.com/JLV-73/sentinel-x/tree/p1/intelligence-core) | Branche expérimentale ajoutant NVD/CVSS et FIRST EPSS ; **non fusionnée dans main** |
 
-## Fonctions disponibles
+Code source uniquement : **aucune Release officielle, aucun exécutable Windows,
+service hébergé ou base locale inclus**. L'application s'exécute chez toi ; tu demandes les données.
 
-- Cockpit NIGHTFALL français/anglais, tableaux de bord et catalogue CISA.
-- Recherche, filtres, pagination et fiches CVE détaillées.
-- Synchronisation CISA manuelle : validation, transaction SQLite atomique,
-  absence de doublons, empreintes SHA-256 et provenance.
-- États sans données/erreur/péremption explicites ; conservation des données
-  validées après échec de collecte.
-- Backend FastAPI/SQLite et frontend React/TypeScript/Vite/Tailwind/ECharts.
+![Vue réelle du cockpit NIGHTFALL — CISA](docs/images/overview-en.png)
+*Capture réelle et datée de validation CISA : ni attaques en direct, ni diagnostic de tes appareils.*
 
+## A. ESSAYER SENTINEL X — DÉMARRAGE RAPIDE
 
-## Installer et démarrer — Windows 11
+### 1. Ouvrir PowerShell normalement et vérifier les prérequis
 
-Prérequis : Git, Python **3.11** et Node.js **24**
-avec npm. Le projet ne les installe pas globalement. Dépendances Python/npm dans
-le dossier du projet uniquement. Utiliser un système de fichiers local normal
-acceptant les liens physiques pour l'installation atomique du schéma.
-
-Ouvrir **PowerShell**, pas une invite Python, dans un dossier dédié :
+Windows 11, Git, **Python 3.11**, **Node.js 24** et npm sont nécessaires. Ouvre
+PowerShell **sans administrateur**. Ne lance pas l'installation dans Program Files,
+Windows ou un autre dossier protégé. Exécute chaque étape numérotée séparément ;
+**au premier échec, arrête-toi**, sans lancer les étapes suivantes.
 
 ```powershell
+$ErrorActionPreference = "Stop"
+Set-Location $HOME
+git --version
+if ($LASTEXITCODE -ne 0) { throw "Git check failed. Stop here." }
+py -3.11 --version
+if ($LASTEXITCODE -ne 0) { throw "Python 3.11 is required. Stop here." }
+node --version
+if ($LASTEXITCODE -ne 0) { throw "Node.js 24 is required. Stop here." }
+npm.cmd --version
+if ($LASTEXITCODE -ne 0) { throw "npm check failed. Stop here." }
+```
+
+Les sorties doivent indiquer Git, Python `3.11.x`, Node `v24.x` et une version npm.
+Le positionnement explicite quitte le dossier initial de PowerShell pour ton dossier utilisateur.
+
+### 2. Télécharger cette version
+
+```powershell
+if (Test-Path -LiteralPath .\sentinel-x) { throw "sentinel-x already exists. Use a new parent folder; do not delete it." }
 git clone https://github.com/JLV-73/sentinel-x.git
-cd sentinel-x
+if ($LASTEXITCODE -ne 0) { throw "Clone failed. Stop here; do not run Python or npm." }
+Set-Location .\sentinel-x
+```
+
+**Un dossier `sentinel-x` existe déjà ?** Conserve-le. Avant de reprendre l'étape 2,
+choisis un parent neuf, par exemple avec ce bloc optionnel (change le nom si
+`sentinel-x-work` existe déjà). Ne relance **pas** l'étape 1 ensuite.
+
+```powershell
+$AlternativeParent = Join-Path $HOME "sentinel-x-work"
+New-Item -ItemType Directory -Path $AlternativeParent -ErrorAction Stop | Out-Null
+Set-Location $AlternativeParent
+```
+
+L'étape 2 crée un nouveau `sentinel-x` dans ce parent : aucune suppression ni écrasement.
+
+### 3. Installer les dépendances dans le projet
+
+Depuis la **racine du nouveau clone**, atteinte à l'étape 2 :
+
+```powershell
 py -3.11 -m venv .venv
+if ($LASTEXITCODE -ne 0) { throw "venv creation failed. Stop here." }
 New-Item -ItemType Directory -Force -Path .cache/pip,.cache/tmp | Out-Null
 $env:TEMP = Join-Path (Get-Location) ".cache/tmp"
 $env:TMP = $env:TEMP
 .\.venv\Scripts\python.exe -I -m pip --isolated install --cache-dir .cache/pip -r backend/requirements-lock.txt
+if ($LASTEXITCODE -ne 0) { throw "Python dependency install failed. Stop here." }
 .\.venv\Scripts\python.exe -I tools/bootstrap_schema.py
-npm --prefix frontend ci
+if ($LASTEXITCODE -ne 0) { throw "Schema bootstrap failed. Stop here." }
+npm.cmd --prefix frontend ci
+if ($LASTEXITCODE -ne 0) { throw "npm install failed. Stop here." }
+```
+
+Versions verrouillées. Venv, dépendances npm et caches restent dans le clone.
+`TEMP`/`TMP` ne concernent que cette session PowerShell. Le schéma est externe :
+le bootstrap vérifie sa révision officielle épinglée et son SHA-256, sans écraser
+un fichier différent. Voir [installation du schéma](docs/SCHEMA_SETUP.md). Aucune clé API nécessaire.
+
+### 4. Démarrer, ouvrir le cockpit et initialiser CISA
+
+```powershell
 .\START_SENTINEL.cmd
 ```
 
-`TEMP`/`TMP` sont limités à cette session PowerShell, sans modification globale de
-Windows. Le bootstrap télécharge **localement** le schéma officiel épinglé, vérifie
-son SHA-256 et n'écrase jamais un fichier différent. Cette ressource externe n'est
-pas redistribuée dans Git : [procédure](docs/SCHEMA_SETUP.md).
+Laisse cette console ouverte. Ouvre toi-même **http://127.0.0.1:5177** dans ton
+navigateur. Santé API : http://127.0.0.1:8007/api/health . Le lanceur n'ouvre aucun
+navigateur et n'installe aucun service.
 
-Ouvrir soi-même http://127.0.0.1:5177 ; santé API :
-http://127.0.0.1:8007/api/health . Le lanceur n'ouvre pas de navigateur personnel,
-ne crée pas de service et refuse les ports occupés sans arrêter un autre processus.
+**NO DATA est normal après une installation neuve.** Dans le cockpit, ouvre
+**DATA CONTROL** ou **CONTRÔLE DES DONNÉES**, puis déclenche la synchronisation CISA
+manuelle. Internet est nécessaire. Après réussite, catalogue et graphiques se
+remplissent de données officielles validées. Aucune collecte au démarrage ; aucun
+jeu fictif dans les indicateurs réels. Un échec conserve les données valides antérieures.
 
-Un clone neuf affiche **NO DATA**. Dans **DATA CONTROL**, déclencher une première
-synchronisation CISA manuelle. Un accès réseau est nécessaire ; aucune protection
-d'accès officielle n'est contournée. Aucun jeu fictif n'alimente les indicateurs
-réels et aucune collecte ne démarre automatiquement avec l'application.
+Arrêt : **Ctrl+C dans la console du lanceur**, puis confirmation si Windows la demande.
+Les serveurs écoutent uniquement sur `127.0.0.1`. Ne les expose pas publiquement et
+n'arrête pas un autre logiciel pour libérer un port.
 
-**Arrêter :** Ctrl+C dans la console du lanceur, puis confirmer si Windows le
-demande. Ne pas exposer ces serveurs de développement hors de `127.0.0.1`.
+## B. CONTRIBUER À SENTINEL X
 
-## Vérifier
+**Fork → Clone → Branche → Modifications → Tests → Pull Request.**
+[CONTRIBUTING.md](CONTRIBUTING.md) détaille le parcours, la branche cible, les tests,
+les protections actuelles de main et les contributions Apache-2.0.
+Revue et validation avant intégration : **aucune fusion automatique**.
+Une vulnérabilité utilise le [signalement privé](SECURITY.md), pas les Issues publiques.
 
-```powershell
-.\.venv\Scripts\python.exe -I -m pytest backend/tests -q
-.\.venv\Scripts\python.exe -I -m unittest discover -s scripts -p "test*.py" -v
-.\.venv\Scripts\python.exe -I -m unittest discover -s tools -p "test*.py" -v
-npm --prefix frontend test
-npm --prefix frontend run build
-```
+## C. DÉPANNAGE
 
-Ces tests utilisent des jeux isolés, pas la base d'exploitation. Ils ne lancent ni
-recette navigateur ni actualisation officielle. Suites historiques réussies pour
-ce snapshot : [vérifications](docs/VERIFICATION.md).
+| Symptôme | Réponse courte |
+|---|---|
+| `Permission denied` au clone | Arrête-toi. `Set-Location $HOME`, ou parent neuf accessible ci-dessus, puis étape 2. Pas de mode administrateur. |
+| Dossier `sentinel-x` existant | Conserve-le ; utilise le parent alternatif, puis l'étape 2. Ne supprime pas une installation pour réessayer à l'aveugle. |
+| Python 3.11 introuvable | Vérifie `py --list` ; installe/sélectionne Python 3.11 depuis sa distribution officielle, puis rouvre PowerShell. Pas de venv d'une autre application. |
+| Node/npm indisponibles | Vérifie Node.js 24 avec npm et son accès dans PATH ; rouvre PowerShell. Ne continue pas avant réussite des deux contrôles. |
+| `npm.ps1` bloqué | Utilise **`npm.cmd`**, déjà employé ici. Aucun changement global de stratégie d'exécution nécessaire. |
+| Échec d'installation des dépendances | Arrête cette étape ; conserve la première erreur, vérifie connexion/disponibilité des versions. Ne modifie pas les lockfiles pour forcer. |
+| Échec bootstrap/SHA-256 | Arrête-toi, vérifie accès officiel/connexion, conserve le fichier précédent et rapporte l'erreur. Ne désactive ni TLS ni contrôle d'empreinte. |
+| Port 5177/8007 occupé | Arrête le lancement de test ; ferme seulement ta console SENTINEL précédente connue, ou demande au responsable du processus. Aucun arrêt de processus inconnu. |
+| NO DATA dans le cockpit | Le clone neuf n'inclut pas de base. Lance la synchronisation CISA manuelle ; en cas d'échec, lis la dernière tentative/erreur dans DATA CONTROL. |
 
-**Sauvegarde à la demande :** `.\.venv\Scripts\python.exe -I scripts/backup.py`
-crée sous `data/backups/` une sauvegarde SQLite cohérente avec sources et manifeste
-SHA-256. Restaurer et vérifier dans un dossier séparé avant tout remplacement.
-Ne jamais committer bases, caches bruts, sauvegardes, environnements ou dépendances.
-
-## Documentation
+## Détails et limites
 
 [Architecture](docs/ARCHITECTURE.md) · [Sources](docs/SOURCES.md) ·
-[Roadmap](docs/ROADMAP.md) · [Correspondance historique](docs/HISTORY_MAP.md) ·
-[Contributions](CONTRIBUTING.md) · [Sécurité](SECURITY.md) ·
-[Changelog](CHANGELOG.md) · [Notices tierces](THIRD_PARTY_NOTICES.md)
+[Roadmap](docs/ROADMAP.md) · [Vérifications](docs/VERIFICATION.md) · [Changelog](CHANGELOG.md)
 
-## Limites et licence
+Aucun scanner, exploit, inventaire/alerte automatique, IA autonome, cockpit hébergé
+ou authentification multi-utilisateur. Les ajouts CISA ne comptent pas des attaques ;
+les échéances CISA ne sont pas des obligations françaises générales. Les signaux
+P1-A restent séparés, avec quotas/fraîcheur et limites documentées. Les phases
+futures ne sont pas livrées. Textes officiels et identifiants non traduits.
 
-Prototype local défensif mono-utilisateur : aucun scanner, exploit, inventaire
-automatique, alerte planifiée, IA autonome, connecteur de télémétrie, hébergement
-public ou authentification multi-utilisateur. Une entrée KEV ne prouve pas qu'un
-appareil est vulnérable. Les échéances CISA ne sont pas des obligations françaises générales.
-
-Réserves actuelles : bundle frontend volumineux et dépréciation d'une dépendance.
-P1-A ajoute quotas fournisseurs, délais réseau coopératifs et non absolus,
-couverture NVD partielle, fraîcheur des caches et paramètre NVD déprécié mais testé.
-Revoir les conditions des sources avant toute redistribution à grande échelle.
-
-**Sous [Apache License 2.0](LICENSE)** pour le code original dont JLV LABS détient les droits.
-Conserver [NOTICE](NOTICE) ; droits des tiers séparés. Voir le
-[périmètre de licence](COPYRIGHT.md) et les [contributions](CONTRIBUTING.md).
-Aucune base locale, réponse brute ou arborescence de dépendances n'est incluse.
-Code public, mais aucun service hébergé, release, package ou binaire proposé.
-Fusions structurantes, releases et changements futurs de visibilité exigent le GO JLV.
-Les versions des manifests ne sont pas des annonces de release.
+[Apache License 2.0](LICENSE) pour le code original JLV ; conserver [NOTICE](NOTICE).
+[Périmètre des droits](COPYRIGHT.md) et [notices tierces](THIRD_PARTY_NOTICES.md)
+séparés. Aucun cache brut ni arbre de dépendances empaqueté n'est distribué.
+La sauvegarde à la demande et les commandes de test restent dans
+[l'architecture](docs/ARCHITECTURE.md) et le [guide contributeur](CONTRIBUTING.md).
