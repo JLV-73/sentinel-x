@@ -1,7 +1,7 @@
 # Third-party materials and obligations
 
-Original project-code licensing is undecided; see `COPYRIGHT.md`. This file does
-not apply a project license or relicense external software/data.
+Original project code owned by JLV LABS is Apache-2.0; see `LICENSE`, `NOTICE`
+and `COPYRIGHT.md`. That grant does not relicense external software or data.
 
 Dependency lockfiles record exact versions; `docs/DEPENDENCY_LICENSES.json`
 records all audited declarations and their evidence levels. Dependencies are

@@ -28,3 +28,12 @@ no unreviewed raw catalogue or EPSS/NVD dump is transferred.
 A private verification record maps the actual publication commit IDs and records
 full-history audits and file hashes. Original private audit material is not
 embedded in this publication history.
+
+## G2 public-source launch
+
+G2 adds documentation/license-only descendants on each branch; no application
+source merge is performed. The immutable stable tag retains its G1 target.
+Apache-2.0 now covers JLV-owned original code also in the earlier clean snapshots;
+old pending-license wording describes the prior decision state. See COPYRIGHT.md
+and NOTICE at the current branch root. Original private local history is never
+uploaded; only the already-sanitized publication history becomes public.

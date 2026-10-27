@@ -1,7 +1,7 @@
 # SENTINEL X — NIGHTFALL
 
 **Renseignement cyber défensif : des faits traçables, pas de menaces simulées.**  
-JLV LABS · Prototype privé · [English](README.md)
+JLV LABS · Prototype open source expérimental et défensif · Apache-2.0 · [English](README.md)
 
 **Branche de développement P1-A.** Enrichissements manuels ciblés NVD/CVSS et FIRST EPSS ; aucune fusion dans la référence stable `main`.
 
@@ -25,7 +25,7 @@ d'attaques en direct. Aucune base locale, donnée brute ou preuve privée du pos
 
 ## Installer et démarrer — Windows 11
 
-Prérequis : accès GitHub à ce dépôt privé, Git, Python **3.11** et Node.js **24**
+Prérequis : Git, Python **3.11** et Node.js **24**
 avec npm. Le projet ne les installe pas globalement. Dépendances Python/npm dans
 le dossier du projet uniquement. Utiliser un système de fichiers local normal
 acceptant les liens physiques pour l'installation atomique du schéma.
@@ -100,8 +100,10 @@ P1-A ajoute quotas fournisseurs, délais réseau coopératifs et non absolus,
 couverture NVD partielle, fraîcheur des caches et paramètre NVD déprécié mais testé.
 Revoir les conditions des sources avant toute redistribution à grande échelle.
 
-**Licence du projet non décidée ; droits réservés par défaut.** L'accès privé ne
-vaut pas licence open source. Comparaison MIT/Apache-2.0/GPLv3/AGPLv3 :
-[options de licence](docs/LICENSE_OPTIONS.md). Aucune licence définitive imposée.
-Publication publique, droits des contributeurs, fusions structurantes et releases
-exigent le GO JLV. Les versions des manifests ne sont pas des annonces de release.
+**Sous [Apache License 2.0](LICENSE)** pour le code original dont JLV LABS détient les droits.
+Conserver [NOTICE](NOTICE) ; droits des tiers séparés. Voir le
+[périmètre de licence](COPYRIGHT.md) et les [contributions](CONTRIBUTING.md).
+Aucune base locale, réponse brute ou arborescence de dépendances n'est incluse.
+Code public, mais aucun service hébergé, release, package ou binaire proposé.
+Fusions structurantes, releases et changements futurs de visibilité exigent le GO JLV.
+Les versions des manifests ne sont pas des annonces de release.

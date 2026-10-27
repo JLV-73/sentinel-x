@@ -1,7 +1,7 @@
 # SENTINEL X — NIGHTFALL
 
 **Defensive cyber intelligence, with traceable facts rather than simulated threats.**  
-JLV LABS · Private prototype · [Français](README.fr.md)
+JLV LABS · Experimental defensive open-source prototype · Apache-2.0 · [Français](README.fr.md)
 
 **P1-A development branch.** Adds manual targeted NVD/CVSS and FIRST EPSS enrichment. It is not merged into stable `main`.
 
@@ -23,7 +23,7 @@ attack feed. No raw catalogue, runtime database or private workstation evidence 
 
 ## Install and run — Windows 11
 
-Prerequisites: GitHub access to this private repository, Git, Python **3.11** and
+Prerequisites: Git, Python **3.11** and
 Node.js **24** with npm. These are prerequisites, not globally installed by the
 project. Python/npm dependencies stay inside the checkout. Use a normal local
 filesystem supporting hard links for the atomic schema installation.
@@ -97,8 +97,10 @@ warning. P1-A adds provider quotas, cooperative—not absolute—network deadlin
 partial NVD coverage, cache freshness and a deprecated-but-tested NVD parameter;
 its source integration must be reviewed before any scaled data redistribution.
 
-**Project license undecided; rights otherwise reserved by default.** This private
-access is not an open-source grant. MIT/Apache-2.0/GPLv3/AGPLv3 are compared in
-[License options](docs/LICENSE_OPTIONS.md); no definitive license is imposed.
-Public visibility, contributor licensing, structural merges and releases require
-explicit JLV approval. Package-manifest version numbers are not release claims.
+**Licensed under [Apache License 2.0](LICENSE)** for original project code owned by JLV LABS.
+Retain [NOTICE](NOTICE); third-party terms remain separate. See
+[license scope](COPYRIGHT.md) and [contribution rules](CONTRIBUTING.md).
+No runtime database, raw source cache or packaged dependency tree is included.
+Code is public; no hosted service, release, package or binary is offered.
+Structural merges, releases and future visibility changes still require JLV GO.
+Package-manifest version numbers are not release claims.
