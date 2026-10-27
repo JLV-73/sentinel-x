@@ -4,18 +4,19 @@
 
 Apache-2.0 · [Français](README.fr.md) · [Contribute](CONTRIBUTING.md)
 
-**P1-B INTELLIGENCE ENGINE — unreleased development branch.** Based on published `v0.1.0-alpha.1`; Intelligence Triage is not yet merged into main and no new Release is created.
+**INTELLIGENCE TRIAGE EDITION — source prepared for `v0.1.0-alpha.2`.** P1-B is merged into `main`. A source version label does not publish a tag or Release; check [GitHub Releases](https://github.com/JLV-73/sentinel-x/releases) for published versions.
 
 | Version | What you install |
 |---|---|
-| [p1b/intelligence-engine](https://github.com/JLV-73/sentinel-x/tree/p1b/intelligence-engine) | Development: consolidated read-only Intelligence Triage and transparent multi-signal filters; not yet in main |
-| [main — First Alpha](https://github.com/JLV-73/sentinel-x/tree/main) | Integrated CISA KEV, targeted NVD/CVSS, FIRST EPSS, bilingual cockpit, search, charts and provenance |
+| [main — Intelligence Triage](https://github.com/JLV-73/sentinel-x/tree/main) | Integrated KEV/NVD/EPSS cockpit plus consolidated read-only triage and independent, transparent filters |
+| [Alpha 2 source notes](docs/RELEASE_v0.1.0-alpha.2.md) | Preparation of this source version; publication remains a separate decision |
+| [v0.1.0-alpha.1](https://github.com/JLV-73/sentinel-x/tree/v0.1.0-alpha.1) | Frozen first official Alpha: P0.1 + P1-A, without the P1-B triage view |
 | [p0.1-international-stable](https://github.com/JLV-73/sentinel-x/tree/p0.1-international-stable) | Frozen CISA-only historical baseline; its tag is not moved |
-| [p1/intelligence-core](https://github.com/JLV-73/sentinel-x/tree/p1/intelligence-core) | Preserved development reference; its existing P1-A features are integrated in this Alpha |
+| [p1/intelligence-core](https://github.com/JLV-73/sentinel-x/tree/p1/intelligence-core) | Preserved P1-A development reference |
 
-**Source-only development checkout:** no P1-B Release or packaged application.
-The existing R1 Alpha remains separate. No Windows executable, installer, container,
-hosted service or local database is included.
+**Source-only checkout:** no packaged application. Alpha 1 and its tag remain
+unchanged. No Windows executable, installer, container, hosted service or local
+database is included.
 You run the application locally and request official-source data yourself.
 
 ![Actual NIGHTFALL CISA overview](docs/images/overview-en.png)
@@ -35,7 +36,7 @@ No startup collection, autonomous monitoring, scanner, alerting or composite sco
 NVD is not fetched exhaustively. After CISA sync, use a CVE detail's NVD control
 or the Intelligence Sources view's explicit NVD/EPSS controls; GET reads stay local.
 
-## Intelligence Triage — P1-B development
+## Intelligence Triage
 
 Open **Intelligence Triage** to read KEV, every CVSS version/provider and EPSS
 probability/percentile together. Search, inclusive catalogue date ranges, source
@@ -78,7 +79,7 @@ This explicitly leaves any initial PowerShell directory and uses your user home.
 
 ```powershell
 if (Test-Path -LiteralPath .\sentinel-x) { throw "sentinel-x already exists. Use a new parent folder; do not delete it." }
-git clone --branch p1b/intelligence-engine https://github.com/JLV-73/sentinel-x.git
+git clone --branch main https://github.com/JLV-73/sentinel-x.git
 if ($LASTEXITCODE -ne 0) { throw "Clone failed. Stop here; do not run Python or npm." }
 Set-Location .\sentinel-x
 ```
@@ -97,7 +98,7 @@ Step 2 will create a new `sentinel-x` inside that parent; nothing is deleted or 
 
 To reproduce the frozen R1 Alpha instead (without P1-B Triage), replace only the clone line
 in step 2 with the following (a detached HEAD at a release tag is expected).
-Do not clone twice. The P1-B branch clone above is for development; the Alpha tag is frozen.
+Do not clone twice. The main clone above follows integrated source development; the Alpha 1 tag is frozen.
 
 ```powershell
 git clone --branch v0.1.0-alpha.1 https://github.com/JLV-73/sentinel-x.git
