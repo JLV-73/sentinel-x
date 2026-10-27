@@ -106,6 +106,14 @@ Arrêt : **Ctrl+C dans la console du lanceur**, puis confirmation si Windows la 
 Les serveurs écoutent uniquement sur `127.0.0.1`. Ne les expose pas publiquement et
 n'arrête pas un autre logiciel pour libérer un port.
 
+### Sauvegarde locale à la demande
+
+Depuis la racine du projet, exécute la commande ci-dessous pour créer une sauvegarde SQLite locale à la demande sous `data/backups/`. Conserve-la localement : ne committe ni ne publie l’archive, la base ou les données sources.
+
+```powershell
+.\.venv\Scripts\python.exe -I scripts/backup.py
+```
+
 ## B. CONTRIBUER À SENTINEL X
 
 **Fork → Clone → Branche → Modifications → Tests → Pull Request.**
