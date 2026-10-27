@@ -104,6 +104,14 @@ never silently feed real indicators. A failed collection preserves any prior val
 Stop with **Ctrl+C in the launcher console**; confirm if Windows asks. Both servers
 bind only `127.0.0.1`. Never expose them publicly or kill another app to free a port.
 
+### Local backup — on demand
+
+From the project root, run the command below to create an on-demand local SQLite backup under `data/backups/`. Keep the backup local: do not commit or publish its archive, database or source data.
+
+```powershell
+.\.venv\Scripts\python.exe -I scripts/backup.py
+```
+
 ## B. CONTRIBUTE TO SENTINEL X
 
 **Fork → Clone → Branch → Changes → Tests → Pull Request.**
