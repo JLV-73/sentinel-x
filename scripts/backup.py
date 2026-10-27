@@ -28,11 +28,11 @@ def backup(root=ROOT):
             source.backup(target)
             if target.execute('PRAGMA integrity_check').fetchone()[0] != 'ok':
                 raise RuntimeError('Sauvegarde interrompue : integrite SQLite incorrecte.')
-        files = [snapshot] + sorted((data / 'source').glob('*.json'))
+        files = [snapshot] + sorted((data / 'source').glob('*.json')) + sorted((data / 'intelligence_raw').rglob('*.json'))
         manifest = {'created_at_utc': datetime.now(timezone.utc).isoformat(), 'files': {}}
         with zipfile.ZipFile(partial, 'x', compression=zipfile.ZIP_DEFLATED) as zipped:
             for path in files:
-                relative = 'sentinel.db' if path == snapshot else 'source/' + path.name
+                relative = 'sentinel.db' if path == snapshot else path.relative_to(data).as_posix()
                 manifest['files'][relative] = hashlib.sha256(path.read_bytes()).hexdigest()
                 zipped.write(path, relative)
             zipped.writestr('manifest.json', json.dumps(manifest, indent=2))

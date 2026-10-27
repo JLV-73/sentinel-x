@@ -3,7 +3,7 @@
 **Renseignement cyber défensif : des faits traçables, pas de menaces simulées.**  
 JLV LABS · Prototype privé · [English](README.md)
 
-**Référence stable P0.1 — INTERNATIONAL EDITION.** Cette branche main utilise uniquement CISA KEV. Les enrichissements NVD/CVSS et FIRST EPSS appartiennent à la branche distincte `p1/intelligence-core`.
+**Branche de développement P1-A.** Enrichissements manuels ciblés NVD/CVSS et FIRST EPSS ; aucune fusion dans la référence stable `main`.
 
 ![Capture réelle du cockpit NIGHTFALL — CISA](docs/images/overview-en.png)
 
@@ -20,6 +20,8 @@ d'attaques en direct. Aucune base locale, donnée brute ou preuve privée du pos
   validées après échec de collecte.
 - Backend FastAPI/SQLite et frontend React/TypeScript/Vite/Tailwind/ECharts.
 
+- Commandes distinctes pour NVD/CVSS et FIRST EPSS, états de disponibilité/fraîcheur et provenance par CVE.
+- Aucun enrichissement autonome ; absence ≠ zéro, aucun score de risque personnel ou composite.
 
 ## Installer et démarrer — Windows 11
 
@@ -31,7 +33,7 @@ acceptant les liens physiques pour l'installation atomique du schéma.
 Ouvrir **PowerShell**, pas une invite Python, dans un dossier dédié :
 
 ```powershell
-git clone https://github.com/JLV-73/sentinel-x.git
+git clone --branch p1/intelligence-core https://github.com/JLV-73/sentinel-x.git
 cd sentinel-x
 py -3.11 -m venv .venv
 New-Item -ItemType Directory -Force -Path .cache/pip,.cache/tmp | Out-Null
