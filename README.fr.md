@@ -4,22 +4,23 @@
 
 Apache-2.0 · [English](README.md) · [Contribuer](CONTRIBUTING.md)
 
-**INTELLIGENCE TRIAGE EDITION — sources préparées pour `v0.1.0-alpha.2`.** P1-B est fusionné dans `main`. Un numéro de version source ne publie ni tag ni Release ; consulter les [Releases GitHub](https://github.com/JLV-73/sentinel-x/releases) pour les versions publiées.
+**0.1.0 — First Stable Release.** P0.1, P1-A et P1-B Intelligence Triage sont intégrés. Un numéro source ne publie pas une Release : consulter les [Releases GitHub](https://github.com/JLV-73/sentinel-x/releases) pour les tags et le statut réels. « Stable » désigne la référence sélectionnée, pas une certification de sécurité.
 
 | Version | Ce qui est installé |
 |---|---|
 | [main — Intelligence Triage](https://github.com/JLV-73/sentinel-x/tree/main) | Cockpit KEV/NVD/EPSS intégré, triage consolidé en lecture seule et filtres indépendants et transparents |
-| [Notes sources Alpha 2](docs/RELEASE_v0.1.0-alpha.2.md) | Préparation de cette version source ; publication soumise à une décision distincte |
+| [Notes sources R3](docs/RELEASE_v0.1.0.md) | Référence source stable, distribution et limites connues ; disponibilité effective dans les Releases GitHub |
+| [v0.1.0-alpha.2](https://github.com/JLV-73/sentinel-x/tree/v0.1.0-alpha.2) | Alpha 2 publiée et figée, avec Intelligence Triage |
 | [v0.1.0-alpha.1](https://github.com/JLV-73/sentinel-x/tree/v0.1.0-alpha.1) | Première Alpha officielle figée : P0.1 + P1-A, sans le triage P1-B |
 | [p0.1-international-stable](https://github.com/JLV-73/sentinel-x/tree/p0.1-international-stable) | Référence historique CISA seule, figée ; tag non déplacé |
 | [p1/intelligence-core](https://github.com/JLV-73/sentinel-x/tree/p1/intelligence-core) | Référence de développement P1-A conservée |
 
-**Code source uniquement :** aucune application empaquetée. L’Alpha 1 et son tag
+**Code source uniquement :** aucune application empaquetée. Les Alpha 1 et 2 et leurs tags
 restent inchangés. Aucun exécutable Windows, installateur, conteneur, service hébergé
 ou base locale inclus.
 L’application tourne chez toi ; tu demandes les données des sources officielles.
 
-![Vue réelle du cockpit NIGHTFALL — CISA](docs/images/overview-en.png)
+![Vue réelle du cockpit NIGHTFALL — CISA](docs/images/overview-r3-en.png)
 *Capture réelle et datée de validation CISA : ni attaques en direct, ni diagnostic de tes appareils.*
 
 ## Renseignements inclus — signaux distincts, aucun risque inventé
@@ -77,11 +78,15 @@ if ($LASTEXITCODE -ne 0) { throw "npm check failed. Stop here." }
 Les sorties doivent indiquer Git, Python `3.11.x`, Node `v24.x` et une version npm.
 Le positionnement explicite quitte le dossier initial de PowerShell pour ton dossier utilisateur.
 
-### 2. Télécharger cette version
+### 2. Télécharger les sources stables immuables
+
+**Disponibilité :** la commande ci-dessous sera utilisable **après publication du tag `v0.1.0`**.
+Vérifier d’abord les [Releases GitHub](https://github.com/JLV-73/sentinel-x/releases).
+Un **HEAD détaché est normal** lors du clonage d’un tag de Release immuable.
 
 ```powershell
 if (Test-Path -LiteralPath .\sentinel-x) { throw "sentinel-x already exists. Use a new parent folder; do not delete it." }
-git clone --branch main https://github.com/JLV-73/sentinel-x.git
+git clone --branch v0.1.0 https://github.com/JLV-73/sentinel-x.git
 if ($LASTEXITCODE -ne 0) { throw "Clone failed. Stop here; do not run Python or npm." }
 Set-Location .\sentinel-x
 ```
@@ -98,12 +103,12 @@ Set-Location $AlternativeParent
 
 L'étape 2 crée un nouveau `sentinel-x` dans ce parent : aucune suppression ni écrasement.
 
-Pour retrouver l’Alpha R1 figée (sans le triage P1-B), remplacer seulement la
-ligne de clonage de l'étape 2 par celle-ci (HEAD détachée normale pour un tag).
-Ne pas cloner deux fois. Le clone main ci-dessus suit les sources intégrées ; le tag Alpha 1 reste figé.
+La commande ci-dessus sélectionne un tag de Release, pas une branche de développement mobile.
+Pour reproduire l’Alpha 2 publiée et figée, remplacer seulement la ligne de clonage
+de l’étape 2 par cette alternative. Un HEAD détaché est normal ; ne pas cloner deux fois.
 
 ```powershell
-git clone --branch v0.1.0-alpha.1 https://github.com/JLV-73/sentinel-x.git
+git clone --branch v0.1.0-alpha.2 https://github.com/JLV-73/sentinel-x.git
 ```
 
 ### 3. Installer les dépendances dans le projet
