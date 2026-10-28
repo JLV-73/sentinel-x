@@ -4,14 +4,14 @@ Versioned releases and dated historical milestones. Publication status is establ
 
 The First Alpha integrates **P0.1 + P1-A** on its main candidate. The original CISA-only baseline remains frozen at `p0.1-international-stable`; [`p1/intelligence-core`](https://github.com/JLV-73/sentinel-x/tree/p1/intelligence-core) remains a preserved development reference. Earlier milestone entries describe their historical scopes. Clean-publication history is separate from the private local archive.
 
-## 0.1.0 — First Stable Release — candidate prepared 2026-10-28
+## 0.1.0 — First Stable Release
 
 - Preserves the complete Alpha 2 functionality (P0.1 + P1-A + P1-B), without a new feature, architecture, connector or dependency.
 - Harmonizes VERSION, npm package/root lock metadata and the visible cockpit version to 0.1.0; the cockpit uses VERSION as its source reference.
 - Preserves all dependency versions, resolutions and integrity values; version changes do not regenerate the dependency graph.
 - Updates FR/EN setup, current/historical version presentation, roadmap and R3 notes. Stable does not mean certified, vulnerability-free or safe for public exposure.
-- Preparation and PR only. Stable tag/Release publication, non-prerelease/non-draft and Latest eligibility, require final JLV approval.
-- Targeted installation, version/build/runtime checks are distinguished from reusable Alpha 2/P1-B evidence in the preparation report.
+- Stable source-only distribution profile: tag v0.1.0, non-prerelease/non-draft Release and Latest eligibility. Actual publication status is recorded by GitHub Releases.
+- Targeted installation, version/build/runtime checks are distinguished from reusable Alpha 2/P1-B evidence in the R3 validation handoff.
 
 ## v0.1.0-alpha.2 — Intelligence Triage Edition — published 2026-10-27
 

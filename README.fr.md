@@ -4,12 +4,12 @@
 
 Apache-2.0 · [English](README.md) · [Contribuer](CONTRIBUTING.md)
 
-**0.1.0 — sources préparées pour la First Stable Release.** P0.1, P1-A et P1-B Intelligence Triage sont intégrés. Un numéro source ne publie pas une Release : consulter les [Releases GitHub](https://github.com/JLV-73/sentinel-x/releases) pour les tags et le statut réels. « Stable » désigne la référence sélectionnée, pas une certification de sécurité.
+**0.1.0 — First Stable Release.** P0.1, P1-A et P1-B Intelligence Triage sont intégrés. Un numéro source ne publie pas une Release : consulter les [Releases GitHub](https://github.com/JLV-73/sentinel-x/releases) pour les tags et le statut réels. « Stable » désigne la référence sélectionnée, pas une certification de sécurité.
 
 | Version | Ce qui est installé |
 |---|---|
 | [main — Intelligence Triage](https://github.com/JLV-73/sentinel-x/tree/main) | Cockpit KEV/NVD/EPSS intégré, triage consolidé en lecture seule et filtres indépendants et transparents |
-| [Notes sources R3](docs/RELEASE_v0.1.0.md) | Préparation First Stable Release ; fusion et publication attendent le GO final |
+| [Notes sources R3](docs/RELEASE_v0.1.0.md) | Référence source stable, distribution et limites connues ; disponibilité effective dans les Releases GitHub |
 | [v0.1.0-alpha.2](https://github.com/JLV-73/sentinel-x/tree/v0.1.0-alpha.2) | Alpha 2 publiée et figée, avec Intelligence Triage |
 | [v0.1.0-alpha.1](https://github.com/JLV-73/sentinel-x/tree/v0.1.0-alpha.1) | Première Alpha officielle figée : P0.1 + P1-A, sans le triage P1-B |
 | [p0.1-international-stable](https://github.com/JLV-73/sentinel-x/tree/p0.1-international-stable) | Référence historique CISA seule, figée ; tag non déplacé |
@@ -78,11 +78,15 @@ if ($LASTEXITCODE -ne 0) { throw "npm check failed. Stop here." }
 Les sorties doivent indiquer Git, Python `3.11.x`, Node `v24.x` et une version npm.
 Le positionnement explicite quitte le dossier initial de PowerShell pour ton dossier utilisateur.
 
-### 2. Télécharger cette version
+### 2. Télécharger les sources stables immuables
+
+**Disponibilité :** la commande ci-dessous sera utilisable **après publication du tag `v0.1.0`**.
+Vérifier d’abord les [Releases GitHub](https://github.com/JLV-73/sentinel-x/releases).
+Un **HEAD détaché est normal** lors du clonage d’un tag de Release immuable.
 
 ```powershell
 if (Test-Path -LiteralPath .\sentinel-x) { throw "sentinel-x already exists. Use a new parent folder; do not delete it." }
-git clone --branch release/r3-stable-v0.1.0 https://github.com/JLV-73/sentinel-x.git
+git clone --branch v0.1.0 https://github.com/JLV-73/sentinel-x.git
 if ($LASTEXITCODE -ne 0) { throw "Clone failed. Stop here; do not run Python or npm." }
 Set-Location .\sentinel-x
 ```
@@ -99,10 +103,9 @@ Set-Location $AlternativeParent
 
 L'étape 2 crée un nouveau `sentinel-x` dans ce parent : aucune suppression ni écrasement.
 
-Le clone ci-dessus sélectionne la branche de préparation R3, pas un tag stable
-publié. Pour reproduire l’Alpha 2 publiée et figée, remplacer seulement la ligne
-de clonage de l’étape 2 par celle-ci (HEAD détachée normale pour un tag). Ne pas
-cloner deux fois. Employer `v0.1.0` à la place seulement après sa publication réelle.
+La commande ci-dessus sélectionne un tag de Release, pas une branche de développement mobile.
+Pour reproduire l’Alpha 2 publiée et figée, remplacer seulement la ligne de clonage
+de l’étape 2 par cette alternative. Un HEAD détaché est normal ; ne pas cloner deux fois.
 
 ```powershell
 git clone --branch v0.1.0-alpha.2 https://github.com/JLV-73/sentinel-x.git

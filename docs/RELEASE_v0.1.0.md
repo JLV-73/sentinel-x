@@ -1,8 +1,9 @@
 # 0.1.0 — First Stable Release
 
 SENTINEL X — NIGHTFALL | First Stable Release by JLV LABS.
-This source prepares R3; the official tag v0.1.0 and stable GitHub Release require
-final owner approval. A source label or these notes do not publish a Release.
+Source version 0.1.0 defines the R3 baseline described below. GitHub Releases
+records the actual publication status; a source label or versioned notes alone
+do not establish that a Release is available.
 
 ## Same validated capabilities as Alpha 2
 
@@ -31,24 +32,25 @@ are updated to reflect the version and already-integrated P1-B.
 Follow README.md or README.fr.md, from normal non-administrator PowerShell:
 Set-Location $HOME, Git, Python 3.11, Node.js 24/npm.cmd, a fresh writable directory,
 local locked venv/npm installation and pinned external CISA schema bootstrap.
-The documented preparation branch is not an immutable stable release tag. Use
-v0.1.0 only once it is actually published, or use the exact approved candidate
-commit for this preparation. Published Alpha 1/2 and historical tags stay frozen.
+The documented stable installation selects the immutable v0.1.0 tag, not a
+moving development branch. This tag becomes usable after publication; a detached
+HEAD is normal for a release-tag checkout. Check GitHub Releases for availability.
+Published Alpha 1/2 and historical tags stay frozen.
 
 START_SENTINEL.cmd runs foreground loopback servers on 127.0.0.1:5177 and :8007.
 A new installation starts NO DATA, never a silent demo catalogue. Collection is
 manual. Ctrl+C in the owned launcher stops both servers; do not stop an unknown
 process to free ports. On-demand backup stays local and outside Git.
 
-## Verification and future publication
+## Verification and source distribution
 
-The R3 handoff records the exact candidate and targeted installation, metadata,
-TypeScript/build, API/cockpit/version and data-integrity checks. Reused P1-B/R2
-checks are explicitly bound to unchanged functional/dependency hashes, not claimed
-as fresh full suites. The prepared PR remains unmerged until final approval;
-CODEOWNERS approval requirements are reported, never bypassed automatically.
+The R3 validation handoff records the exact source reference and targeted
+installation, metadata, TypeScript/build, API/cockpit/version and data-integrity
+checks. Reused P1-B/R2 checks are bound to unchanged functional/dependency hashes,
+not claimed as fresh full suites. Repository changes remain governed by review,
+CODEOWNERS requirements and explicit owner authorization; no automatic bypass.
 
-Future approved publication: tag v0.1.0; public GitHub Release named
+Stable distribution profile: tag v0.1.0; public GitHub Release named
 SENTINEL X — NIGHTFALL | First Stable Release; prerelease=false, draft=false,
 eligible for Latest. Standard source ZIP/TAR.GZ only; no Windows binary or installer.
 

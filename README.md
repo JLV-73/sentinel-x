@@ -4,12 +4,12 @@
 
 Apache-2.0 · [Français](README.fr.md) · [Contribute](CONTRIBUTING.md)
 
-**0.1.0 — First Stable Release source preparation.** P0.1, P1-A and P1-B Intelligence Triage are integrated. A source version is not a published Release: check [GitHub Releases](https://github.com/JLV-73/sentinel-x/releases) for actual tags and publication status. “Stable” identifies the selected release baseline, not a security certification.
+**0.1.0 — First Stable Release.** P0.1, P1-A and P1-B Intelligence Triage are integrated. A source version is not a published Release: check [GitHub Releases](https://github.com/JLV-73/sentinel-x/releases) for actual tags and publication status. “Stable” identifies the selected release baseline, not a security certification.
 
 | Version | What you install |
 |---|---|
 | [main — Intelligence Triage](https://github.com/JLV-73/sentinel-x/tree/main) | Integrated KEV/NVD/EPSS cockpit plus consolidated read-only triage and independent, transparent filters |
-| [R3 source notes](docs/RELEASE_v0.1.0.md) | First Stable Release preparation; merge and publication still require final owner approval |
+| [R3 source notes](docs/RELEASE_v0.1.0.md) | Stable source baseline, distribution and known limitations; GitHub Releases records actual availability |
 | [v0.1.0-alpha.2](https://github.com/JLV-73/sentinel-x/tree/v0.1.0-alpha.2) | Published frozen Alpha 2, with Intelligence Triage |
 | [v0.1.0-alpha.1](https://github.com/JLV-73/sentinel-x/tree/v0.1.0-alpha.1) | Frozen first official Alpha: P0.1 + P1-A, without the P1-B triage view |
 | [p0.1-international-stable](https://github.com/JLV-73/sentinel-x/tree/p0.1-international-stable) | Frozen CISA-only historical baseline; its tag is not moved |
@@ -76,11 +76,15 @@ if ($LASTEXITCODE -ne 0) { throw "npm check failed. Stop here." }
 The outputs must show Git, Python `3.11.x`, Node `v24.x` and an npm version.
 This explicitly leaves any initial PowerShell directory and uses your user home.
 
-### 2. Download this version
+### 2. Download the immutable stable source
+
+**Availability:** the command below is usable **after the `v0.1.0` tag is published**.
+Check [GitHub Releases](https://github.com/JLV-73/sentinel-x/releases) first.
+A **detached HEAD is normal** when checking out an immutable release tag.
 
 ```powershell
 if (Test-Path -LiteralPath .\sentinel-x) { throw "sentinel-x already exists. Use a new parent folder; do not delete it." }
-git clone --branch release/r3-stable-v0.1.0 https://github.com/JLV-73/sentinel-x.git
+git clone --branch v0.1.0 https://github.com/JLV-73/sentinel-x.git
 if ($LASTEXITCODE -ne 0) { throw "Clone failed. Stop here; do not run Python or npm." }
 Set-Location .\sentinel-x
 ```
@@ -97,10 +101,9 @@ Set-Location $AlternativeParent
 
 Step 2 will create a new `sentinel-x` inside that parent; nothing is deleted or overwritten.
 
-The clone above selects the R3 preparation branch, not a published stable tag.
+The command above selects a release tag, not a moving development branch.
 To reproduce frozen published Alpha 2 instead, replace only the clone line in
-step 2 with the following (detached HEAD at a tag is expected). Do not clone twice.
-Use `v0.1.0` instead only after that stable tag is actually published.
+step 2 with the following alternative. A detached HEAD is normal; do not clone twice.
 
 ```powershell
 git clone --branch v0.1.0-alpha.2 https://github.com/JLV-73/sentinel-x.git
