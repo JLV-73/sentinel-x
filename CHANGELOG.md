@@ -1,10 +1,19 @@
 # Changelog
 
-Milestone history, not a semantic-version release series. Application milestones below are dated **2026-10-26**; GitHub Foundation is dated **2026-10-27**. These entries record completed local development/validation at the time; they do not claim a GitHub Release has been published or that checks were rerun for a later checkout.
+Versioned releases and dated historical milestones. Publication status is established by the actual GitHub Releases, not by a heading in this file. Historical checks remain dated evidence, not claims of a fresh run for later source versions.
 
 The First Alpha integrates **P0.1 + P1-A** on its main candidate. The original CISA-only baseline remains frozen at `p0.1-international-stable`; [`p1/intelligence-core`](https://github.com/JLV-73/sentinel-x/tree/p1/intelligence-core) remains a preserved development reference. Earlier milestone entries describe their historical scopes. Clean-publication history is separate from the private local archive.
 
-## v0.1.0-alpha.2 — Intelligence Triage Edition — candidate prepared 2026-10-27
+## 0.1.0 — First Stable Release — candidate prepared 2026-10-28
+
+- Preserves the complete Alpha 2 functionality (P0.1 + P1-A + P1-B), without a new feature, architecture, connector or dependency.
+- Harmonizes VERSION, npm package/root lock metadata and the visible cockpit version to 0.1.0; the cockpit uses VERSION as its source reference.
+- Preserves all dependency versions, resolutions and integrity values; version changes do not regenerate the dependency graph.
+- Updates FR/EN setup, current/historical version presentation, roadmap and R3 notes. Stable does not mean certified, vulnerability-free or safe for public exposure.
+- Preparation and PR only. Stable tag/Release publication, non-prerelease/non-draft and Latest eligibility, require final JLV approval.
+- Targeted installation, version/build/runtime checks are distinguished from reusable Alpha 2/P1-B evidence in the preparation report.
+
+## v0.1.0-alpha.2 — Intelligence Triage Edition — published 2026-10-27
 
 - Consolidated read-only Intelligence Triage over the existing KEV/NVD/EPSS cache, with independent transparent criteria and no risk score.
 - Search/date/source-state/value filters, preserved metric versions/providers, probability versus percentile, provenance and explicit retained-value semantics.
@@ -12,7 +21,7 @@ The First Alpha integrates **P0.1 + P1-A** on its main candidate. The original C
 - OSV/GHSA comparative research only; no new provider integrated.
 - P1-B integrated into main by PR #6 after JLV user validation and external review; merge tree identical to the exact reviewed P1-B source.
 - Alpha 1, historical tags, source rights, operational checkouts and protections preserved.
-- Alpha 2 preparation adds documentation/version metadata only; its tag and Pre-release require a separate publication GO.
+- Published as a source-only Pre-release after PR #7 documentary integration; Alpha 1 and historical tags remain unchanged.
 - P1-B evidence: 379 backend and 103 frontend tests passed. R2 targeted checks and reused hash-bound evidence are distinguished in the preparation report.
 
 ## v0.1.0-alpha.1 — First Official Alpha source — 2026-10-27
@@ -22,7 +31,7 @@ The First Alpha integrates **P0.1 + P1-A** on its main candidate. The original C
 - Preserves D1 writable-home Windows setup, failure guards, npm.cmd, local backup and contribution paths.
 - Resolves README-only merge conflicts by preserving D1 and updating the version presentation.
 - No new functional module, scanner, autonomous alert/AI, hosted service or bundled runtime data.
-- Intended publication is a source-only GitHub pre-release after candidate verification and required approval.
+- Published as the first official source-only GitHub Pre-release; no executable or installer.
 - Community issues #3 and #4 remain open and outside R1.
 
 ## G2 — Public repository launch — 2026-10-27

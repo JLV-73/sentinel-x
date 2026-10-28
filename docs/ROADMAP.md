@@ -8,7 +8,10 @@
   and issue/PR templates (historical private preparation).
 - **G2 / PUBLIC SOURCE LAUNCH:** Apache-2.0 source publication and community/security controls; no release, binary, package or hosted service.
 - **R1 / v0.1.0-alpha.1:** integrated First Alpha source and release-candidate verification; source-only pre-release, no new functional module.
-- **P1-B / INTELLIGENCE ENGINE:** developed on `p1b/intelligence-engine` for review; one local read-only multi-signal Triage view, filters and contextual explanations. OSV/GHSA study only. No integration into main or new Release without another GO.
+- **P1-B / INTELLIGENCE ENGINE:** integrated into main by PR #6; local read-only multi-signal Triage, filters and contextual explanations. OSV/GHSA research only.
+- **R2 / v0.1.0-alpha.2:** published Intelligence Triage Edition Pre-release; Alpha 1, prior tags and source behavior preserved.
+- **R3 / v0.1.0:** First Stable Release preparation and PR. Harmonized source/npm/cockpit version only; same functional scope as Alpha 2. No stable tag/Release exists by implication of this roadmap: final merge/publication needs its own GO.
+- **After verified stable publication:** development PAUSED by JLV; no automatic next phase, maintenance or monitoring. C1/Chiara-MCP is not engaged.
 - **P1-C:** not implemented; future scope requires its own specification and GO.
 - **P2:** not implemented; any web-security-auditor concept remains a future
   specification, not a current URL audit or scanning capability.
