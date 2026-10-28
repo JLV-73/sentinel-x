@@ -4,10 +4,12 @@
 
 Apache-2.0 · [English](README.md) · [Contribuer](CONTRIBUTING.md)
 
-**0.1.0 — First Stable Release.** P0.1, P1-A et P1-B Intelligence Triage sont intégrés. Un numéro source ne publie pas une Release : consulter les [Releases GitHub](https://github.com/JLV-73/sentinel-x/releases) pour les tags et le statut réels. « Stable » désigne la référence sélectionnée, pas une certification de sécurité.
+**0.1.1 — Pilote GHSA Intelligence (non publié).** Cette branche ajoute les avis GitHub reviewed, sur demande ciblée, dans la fiche CVE existante. La référence stable publiée reste **v0.1.0**, sans GHSA. Ce numéro source ne crée aucun tag ni Release v0.1.1 ; consulter les [Releases GitHub](https://github.com/JLV-73/sentinel-x/releases) pour le statut réel. « Stable » ne signifie pas certifié.
 
 | Version | Ce qui est installé |
 |---|---|
+| [p1c/ghsa-intelligence](https://github.com/JLV-73/sentinel-x/tree/p1c/ghsa-intelligence) | Pilote GHSA non publié, soumis à revue ; pas la version stable publiée |
+| [v0.1.0](https://github.com/JLV-73/sentinel-x/tree/v0.1.0) | First Stable Release publiée, sans le pilote GHSA |
 | [main — Intelligence Triage](https://github.com/JLV-73/sentinel-x/tree/main) | Cockpit KEV/NVD/EPSS intégré, triage consolidé en lecture seule et filtres indépendants et transparents |
 | [Notes sources R3](docs/RELEASE_v0.1.0.md) | Référence source stable, distribution et limites connues ; disponibilité effective dans les Releases GitHub |
 | [v0.1.0-alpha.2](https://github.com/JLV-73/sentinel-x/tree/v0.1.0-alpha.2) | Alpha 2 publiée et figée, avec Intelligence Triage |
@@ -50,8 +52,30 @@ composite, recommandation automatique ou diagnostic d’un appareil. Les lignes 
 seules restent utilisables. Filtres et retour de fiche gardent leur contexte au
 changement FR/EN. La consultation effectue uniquement des GET locaux, sans collecte.
 
-Voir le [contrat de triage](docs/TRIAGE_CONTRACT.md) et l’[étude OSV/GHSA](docs/OSV_GHSA_STUDY.md)
-pour une éventuelle source future — étude uniquement, aucun connecteur intégré.
+Voir le [contrat de triage](docs/TRIAGE_CONTRACT.md) et l’[étude historique OSV/GHSA](docs/OSV_GHSA_STUDY.md).
+P1-C implémente uniquement GHSA ; OSV reste exclu.
+
+## Pilote GHSA — consultation explicite d’une CVE
+
+Ouvrir une fiche CVE existante, puis demander les avis GitHub reviewed. Le panneau
+préserve identifiants, paquets/écosystèmes, plages affectées, premières corrections,
+dates source, retrait et gravité/vecteurs originaux. Plusieurs avis restent distincts ;
+aucun résultat, recherche non demandée, indisponibilité et donnée ancienne/conservée
+ne sont pas confondus. Aucun diagnostic d’exposition d’un appareil n’est déduit.
+
+Une page de l’API officielle anonyme (100 avis maximum) par consultation explicite,
+avec intervalle minimal persistant de 65 secondes et respect des temporisations source.
+Une page supplémentaire est signalée comme limite du pilote, jamais omise en silence.
+Aucune clé obligatoire, collecte globale du catalogue, relance automatique ou tâche
+de fond. Ouvrir une fiche/changer de langue ne lit que le cache local. Les données
+GitHub Advisory Database sont **CC-BY-4.0**, distinctes du code Apache-2.0 ; attribution
+et JSON d’origine restent disponibles. Voir le [contrat du pilote borné](docs/GHSA_PILOT_CONTRACT.md).
+
+**Choix d’installation :** le démarrage rapide ci-dessous installe volontairement
+la stable immuable `v0.1.0` (sans GHSA). Pour évaluer ce pilote non publié dans un
+**nouveau dossier isolé**, remplacer uniquement `--branch v0.1.0` par
+`--branch p1c/ghsa-intelligence` à l’étape 2 ; conserver tous les autres prérequis
+et garde-fous. Ne pas réutiliser une installation stable opérationnelle ni ses données.
 
 ## A. ESSAYER SENTINEL X — DÉMARRAGE RAPIDE
 

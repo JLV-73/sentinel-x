@@ -11,8 +11,9 @@
 - **P1-B / INTELLIGENCE ENGINE:** integrated into main by PR #6; local read-only multi-signal Triage, filters and contextual explanations. OSV/GHSA research only.
 - **R2 / v0.1.0-alpha.2:** published Intelligence Triage Edition Pre-release; Alpha 1, prior tags and source behavior preserved.
 - **R3 / v0.1.0:** First Stable Release baseline. Harmonized source/npm/cockpit version only; same functional scope as Alpha 2. Stable installation uses the immutable v0.1.0 tag after publication; GitHub Releases records its actual availability.
-- **After verified stable publication:** development PAUSED by JLV; no automatic next phase, maintenance or monitoring. C1/Chiara-MCP is not engaged.
-- **P1-C:** not implemented; future scope requires its own specification and GO.
+- **After verified stable publication:** JLV paused development; a separate explicit GO on 2026-10-28 reopened only the P1-C pilot below. No automatic next phase, maintenance or monitoring.
+- **P1-C / target v0.1.1:** unreleased GHSA pilot on a dedicated branch: one explicitly requested local CVE, reviewed public advisories, preserved source fields, additive cache/provenance, FR/EN detail panel. OSV, bulk collection and automated alerts are excluded. PR review only; merge/tag/Release require a separate final GO.
+- **C1 / Chiara-MCP:** not engaged and remains outside the P1-C mandate.
 - **P2:** not implemented; any web-security-auditor concept remains a future
   specification, not a current URL audit or scanning capability.
 - **P3:** not implemented; scope and delivery model remain undecided.

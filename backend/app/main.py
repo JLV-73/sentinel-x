@@ -10,6 +10,8 @@ from .service import Service, SyncBusy
 from .intelligence import IntelligenceService
 from .intelligence_api import install_routes
 from .triage import install_triage_route
+from .ghsa import GhsaService
+from .ghsa_api import install_ghsa_routes
 
 ORIGINS = ("http://127.0.0.1:5177", "http://127.0.0.1:8007")
 
@@ -39,6 +41,8 @@ def create_app(db_path=None):
     app = FastAPI(title="SENTINEL X", lifespan=lifespan)
     app.state.service = service
     app.state.intelligence = intelligence
+    app.state.ghsa = GhsaService(service)
+    install_ghsa_routes(app, app.state.ghsa, ORIGINS)
     install_routes(app, intelligence, ORIGINS)
     install_triage_route(app, service)
     app.add_middleware(CORSMiddleware, allow_origins=list(ORIGINS), allow_methods=["GET", "POST"],

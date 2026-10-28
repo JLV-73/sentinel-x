@@ -1,0 +1,53 @@
+[
+  {
+    "ghsa_id": "GHSA-2345-6789-cfgh",
+    "cve_id": "CVE-2026-1234",
+    "type": "reviewed",
+    "html_url": "https://github.com/advisories/GHSA-2345-6789-cfgh",
+    "summary": "SYNTHETIC OFFLINE FIXTURE",
+    "description": "Synthetic test only.",
+    "severity": "critical",
+    "cvss": {
+      "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+      "score": 9.8
+    },
+    "cvss_severities": {
+      "cvss_v4": {
+        "vector_string": null,
+        "score": 0.0
+      }
+    },
+    "identifiers": [
+      {
+        "type": "GHSA",
+        "value": "GHSA-2345-6789-cfgh"
+      },
+      {
+        "type": "CVE",
+        "value": "CVE-2026-1234"
+      }
+    ],
+    "vulnerabilities": [
+      {
+        "package": {
+          "ecosystem": "pip",
+          "name": "synthetic-example"
+        },
+        "vulnerable_version_range": null,
+        "first_patched_version": null
+      }
+    ],
+    "published_at": "2026-10-20T12:00:00Z",
+    "updated_at": "2026-10-22T12:00:00Z",
+    "github_reviewed_at": "2026-10-20T13:00:00Z",
+    "nvd_published_at": null,
+    "withdrawn_at": null,
+    "future_source_field": {
+      "preserve": true
+    },
+    "epss": {
+      "percentage": 0.123,
+      "percentile": 0.456
+    }
+  }
+]
