@@ -21,6 +21,22 @@ let current=structuredClone(initial);
 const endpoint=`/api/intelligence/ghsa/${vuln.cveID}`;
 beforeEach(()=>{window.location.hash=`cve/${vuln.cveID}`;current=structuredClone(initial);vi.stubGlobal('fetch',vi.fn(async(url:string)=>url===endpoint?json(current):defaultResponse(url)));});
 afterEach(()=>vi.unstubAllGlobals());
+it.each([['fr','Non renseigné'],['en','Not specified']] as const)('preserves a provided range and labels a null range in %s without changing source JSON',async(locale,label)=>{
+ current=structuredClone(available);
+ const original=current.ghsa.data!.advisories[0];
+ original.vulnerabilities=original.vulnerabilities.slice(0,2);
+ original.vulnerabilities[1].vulnerable_version_range=null;
+ const expected=structuredClone(original);
+ render(<App/>);
+ const entries=await screen.findAllByTestId('ghsa-package');
+ fireEvent.click(screen.getByTestId(`language-${locale}`));
+ expect(within(entries[0]).getByText('>= 1.0, < 2.0')).toHaveAttribute('lang','en');
+ expect(within(entries[1]).getByText(label)).toBeVisible();
+ const source=screen.getAllByTestId('ghsa-advisory')[0];
+ const raw=Array.from(source.querySelectorAll('details pre')).map(node=>JSON.parse(node.textContent!)).find(value=>value.ghsa_id===expected.ghsa_id);
+ expect(raw).toEqual(expected);
+ expect(raw.vulnerabilities[1].vulnerable_version_range).toBeNull();
+});
 it('preserves multiple original records, ten package ranges, withdrawal, missing fixes and source placeholders without HTML',async()=>{
  current=structuredClone(available);render(<App/>);
  const panel=await screen.findByTestId('ghsa-panel');
@@ -28,7 +44,7 @@ it('preserves multiple original records, ten package ranges, withdrawal, missing
  expect(within(panel).getAllByText((_,node)=>node?.tagName==='P'&&node.textContent===advisory.description)[0]).toHaveAttribute('lang','en');
  expect(within(panel).getAllByTestId('ghsa-advisory')).toHaveLength(2);
  expect(within(panel).getAllByTestId('ghsa-package')).toHaveLength(10);
- for(const entry of advisory.vulnerabilities){expect(within(panel).getByText(entry.package.name)).toBeVisible();expect(within(panel).getByText(entry.vulnerable_version_range)).toHaveAttribute('lang','en');}
+ for(const entry of advisory.vulnerabilities){expect(within(panel).getByText(entry.package.name)).toBeVisible();expect(within(panel).getByText(entry.vulnerable_version_range!)).toHaveAttribute('lang','en');}
  expect(within(panel).getByText('Version corrigée non renseignée — pas de recommandation déduite.')).toBeVisible();
  expect(within(panel).getByText('Avis retiré par la source')).toBeVisible();
  expect(within(panel).getByText('2026-10-27T04:05:06Z')).toBeVisible();

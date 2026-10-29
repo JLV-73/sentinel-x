@@ -170,6 +170,7 @@ export const messages={
  ghsaEcosystem:['Package ecosystem','Écosystème du paquet'],
  ghsaPackage:['Package name','Nom du paquet'],
  ghsaRange:['Original affected-version range','Plage de versions affectées originale'],
+ ghsaRangeMissing:['Not specified','Non renseigné'],
  ghsaPatched:['First patched version (source)','Première version corrigée (source)'],
  ghsaUnknownFix:['Patched version not specified — no recommendation inferred.','Version corrigée non renseignée — pas de recommandation déduite.'],
  ghsaNoPackages:['No package range supplied in this advisory.','Aucune plage de paquet fournie dans cet avis.'],

@@ -87,7 +87,7 @@ function Advisory({value:a}:{value:GhsaAdvisory}) {
   {a.vulnerabilities.length?a.vulnerabilities.map((entry,i)=><div key={i} className="cvss-block" data-testid="ghsa-package"><dl className="intel-fields">
    <Field label={t('ghsaEcosystem')}><span lang="en">{entry.package.ecosystem}</span></Field>
    <Field label={t('ghsaPackage')}><code lang="en">{entry.package.name}</code></Field>
-   <Field label={t('ghsaRange')}><code lang="en">{entry.vulnerable_version_range}</code></Field>
+   <Field label={t('ghsaRange')}>{entry.vulnerable_version_range?<code lang="en">{entry.vulnerable_version_range}</code>:t('ghsaRangeMissing')}</Field>
    <Field label={t('ghsaPatched')}>{entry.first_patched_version?<code lang="en">{entry.first_patched_version}</code>:t('ghsaUnknownFix')}</Field>
   </dl></div>):<p className="muted">{t('ghsaNoPackages')}</p>}
   <JsonDisclosure label={t('ghsaIdentifiers')} value={a.identifiers}/>

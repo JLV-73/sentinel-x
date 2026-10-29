@@ -57,7 +57,7 @@ export interface TriageItem {
 export interface GhsaCvss { vector_string:string|null; score:number|null; [key:string]:unknown }
 export interface GhsaVulnerability {
  package:{ecosystem:string;name:string;[key:string]:unknown};
- vulnerable_version_range:string; first_patched_version:string|null;
+ vulnerable_version_range:string|null; first_patched_version:string|null;
  [key:string]:unknown;
 }
 export interface GhsaAdvisory {
