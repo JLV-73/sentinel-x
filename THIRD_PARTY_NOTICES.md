@@ -45,3 +45,25 @@ planning data redistribution or commercial packaging.
 
 NVD attribution: "This product uses data from the NVD API but is not endorsed or
 certified by the NVD."
+
+## GitHub Advisory Database — P1-C pilot
+
+Advisory data: **GitHub Advisory Database and its contributors**, licensed under
+[Creative Commons Attribution 4.0 International (CC-BY-4.0)](https://creativecommons.org/licenses/by/4.0/).
+Source: <https://github.com/advisories>; upstream license:
+<https://github.com/github/advisory-database/blob/main/LICENSE.md>.
+
+The app explicitly retrieves reviewed public records from the official GitHub REST
+API, retains the original JSON with request URL/date/SHA-256, and projects selected
+fields with local availability/freshness/cache metadata. Those projections and local
+metadata are application processing, not new source statements or GitHub endorsement.
+Original descriptions, identifiers, ranges, dates and severity declarations are not
+translated or recomputed. Runtime caches are not bundled with the source repository;
+offline synthetic test fixtures are identified as such. The genuine offline fixture
+`frontend/src/components/fixtures/ghsa-official-log4shell.json` is an unmodified
+anonymous API response retrieved on 2026-10-28 from
+<https://api.github.com/advisories?cve_id=CVE-2021-44228&type=reviewed&per_page=100>;
+it retains its source credits and is covered by the same CC-BY-4.0 attribution,
+not the project code license. Real advisory excerpts visible
+in dated pilot screenshots keep the source/CC-BY-4.0 attribution and do not establish
+user-device exposure. The Apache-2.0 project license does **not** relicense these data.

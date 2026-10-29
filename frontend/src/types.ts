@@ -53,6 +53,31 @@ export interface TriageItem {
  cve_id:string; kev:Vulnerability; nvd:TriageSource<NvdData>; epss:TriageSource<EpssData>;
  indicators:{recent_kev:boolean;cvss_threshold_met:boolean|null;epss_threshold_met:boolean|null;nvd_needs_enrichment:boolean;epss_needs_enrichment:boolean};
 }
+// P1-C is isolated: legacy NVD/EPSS source unions and endpoint shapes stay unchanged.
+export interface GhsaCvss { vector_string:string|null; score:number|null; [key:string]:unknown }
+export interface GhsaVulnerability {
+ package:{ecosystem:string;name:string;[key:string]:unknown};
+ vulnerable_version_range:string|null; first_patched_version:string|null;
+ [key:string]:unknown;
+}
+export interface GhsaAdvisory {
+ ghsa_id:string; cve_id:string|null; type:string; html_url:string; summary:string; description:string|null;
+ severity:string|null; cvss:GhsaCvss|null; cvss_severities?:Record<string,GhsaCvss|null>|null;
+ identifiers:{type:string;value:string}[]; vulnerabilities:GhsaVulnerability[];
+ published_at:string|null; updated_at:string|null; github_reviewed_at:string|null;
+ nvd_published_at:string|null; withdrawn_at:string|null; [key:string]:unknown;
+}
+export interface GhsaData { date:string|null; advisories:GhsaAdvisory[] }
+export type GhsaProvenance=Omit<IntelligenceProvenance,'source'>&{source:'ghsa'};
+export type GhsaAttempt=Omit<IntelligenceAttempt,'source'|'provenances'>&{source:'ghsa';provenances:GhsaProvenance[]};
+export type GhsaSourceData=Omit<SourceData<GhsaData>,'provenance'|'last_attempt'|'last_success'>&{
+ provenance:GhsaProvenance|null;last_attempt:GhsaAttempt|null;last_success:GhsaAttempt|null;
+};
+export interface GhsaResult {
+ cve_id:string; ghsa:GhsaSourceData;
+ control:{next_request_at:string|null;freshness_hours:24;minimum_interval_seconds:65;max_advisories:100;
+ attribution:{name:string;url:string;license:string;license_url:string}};
+}
 export interface TriageResult {
  data_mode:'REAL DATA'|'NO DATA'; as_of_utc:string; catalog_total:number; total:number; page:number; pages:number; page_size:number;
  filters:TriageQuery; cisa_provenance:ImportRecord|null; items:TriageItem[];

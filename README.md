@@ -4,10 +4,12 @@
 
 Apache-2.0 · [Français](README.fr.md) · [Contribute](CONTRIBUTING.md)
 
-**0.1.0 — First Stable Release.** P0.1, P1-A and P1-B Intelligence Triage are integrated. A source version is not a published Release: check [GitHub Releases](https://github.com/JLV-73/sentinel-x/releases) for actual tags and publication status. “Stable” identifies the selected release baseline, not a security certification.
+**0.1.1 — GHSA Intelligence Pilot (unreleased).** This development branch adds explicit, targeted GitHub reviewed advisories to the existing CVE detail. The published stable baseline remains **v0.1.0**, without GHSA. No v0.1.1 tag or Release is created by this source version; check [GitHub Releases](https://github.com/JLV-73/sentinel-x/releases) for actual publication status. “Stable” is not a security certification.
 
 | Version | What you install |
 |---|---|
+| [p1c/ghsa-intelligence](https://github.com/JLV-73/sentinel-x/tree/p1c/ghsa-intelligence) | Unreleased GHSA pilot for review; not the published stable version |
+| [v0.1.0](https://github.com/JLV-73/sentinel-x/tree/v0.1.0) | Published First Stable Release, without the GHSA pilot |
 | [main — Intelligence Triage](https://github.com/JLV-73/sentinel-x/tree/main) | Integrated KEV/NVD/EPSS cockpit plus consolidated read-only triage and independent, transparent filters |
 | [R3 source notes](docs/RELEASE_v0.1.0.md) | Stable source baseline, distribution and known limitations; GitHub Releases records actual availability |
 | [v0.1.0-alpha.2](https://github.com/JLV-73/sentinel-x/tree/v0.1.0-alpha.2) | Published frozen Alpha 2, with Intelligence Triage |
@@ -48,8 +50,30 @@ and provenance stay visible. They are not a recommendation or a composite risk s
 CISA-only rows remain usable. Filters and detail/back navigation preserve context
 when switching FR/EN. Browsing performs local GETs only, never external collection.
 
-See [the small triage contract](docs/TRIAGE_CONTRACT.md) and the
-[OSV/GHSA future-source study](docs/OSV_GHSA_STUDY.md) — study only, no connector.
+See [the triage contract](docs/TRIAGE_CONTRACT.md) and the historical
+[OSV/GHSA study](docs/OSV_GHSA_STUDY.md). P1-C implements GHSA only; OSV remains excluded.
+
+## GHSA pilot — explicit CVE lookup only
+
+Open an existing CVE detail and explicitly request GitHub reviewed advisories.
+The panel preserves advisory IDs, packages/ecosystems, affected ranges, first fixes,
+source dates, withdrawal status and original severity/vector information. Multiple
+advisories remain separate; an empty result, an unrequested lookup, source failure
+and stale/retained data are not interchangeable. No device exposure is inferred.
+
+One anonymous official API page (100 advisories maximum) per explicit lookup, with
+a persistent minimum 65-second interval and provider cooldown handling. A further
+page is reported as a pilot limit, not silently omitted. There is no key requirement,
+catalogue-wide collection, automatic retry or background job. Viewing/changing language
+only reads the local cache. GitHub Advisory Database data is **CC-BY-4.0**, separate
+from this project’s Apache-2.0 code; attribution and the original JSON remain available.
+See [the bounded pilot contract](docs/GHSA_PILOT_CONTRACT.md).
+
+**Installation choice:** the quick start below intentionally installs immutable stable
+`v0.1.0` (no GHSA). To evaluate this unreleased pilot in a **new isolated directory**,
+replace only `--branch v0.1.0` with `--branch p1c/ghsa-intelligence` in step 2;
+retain every other prerequisite and installation safeguard. Do not reuse an operational
+stable checkout or its data.
 
 ## A. TRY SENTINEL X — QUICK START
 

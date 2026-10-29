@@ -4,6 +4,15 @@ Versioned releases and dated historical milestones. Publication status is establ
 
 The First Alpha integrates **P0.1 + P1-A** on its main candidate. The original CISA-only baseline remains frozen at `p0.1-international-stable`; [`p1/intelligence-core`](https://github.com/JLV-73/sentinel-x/tree/p1/intelligence-core) remains a preserved development reference. Earlier milestone entries describe their historical scopes. Clean-publication history is separate from the private local archive.
 
+## 0.1.1 — GHSA Intelligence Pilot — unreleased
+
+- Adds explicitly requested, anonymous GitHub reviewed-advisory enrichment for one existing local KEV CVE; no catalogue-wide lookup or OSV connector.
+- Preserves original advisories, packages/ecosystems, affected ranges, first fixes, severity/vectors, dates and withdrawals in the bilingual CVE detail.
+- Distinguishes unrequested, confirmed empty, unavailable, stale and retained-after-error states; no risk score or equipment exposure diagnosis.
+- Reuses additive source=ghsa cache/control/attempt rows with lazy acquisition, raw-response hashes and CC-BY-4.0 attribution; no legacy schema replacement.
+- Bounds each explicit request to one official page/100 advisories, with a persistent 65-second minimum interval and provider quota/reset handling; no automatic retry or API key.
+- Targets source version 0.1.1 without creating a tag, Release or merge; published v0.1.0, both Alpha releases and their tags remain unchanged.
+
 ## 0.1.0 — First Stable Release
 
 - Preserves the complete Alpha 2 functionality (P0.1 + P1-A + P1-B), without a new feature, architecture, connector or dependency.

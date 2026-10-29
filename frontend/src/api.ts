@@ -1,4 +1,4 @@
-import type { CatalogueFilters, Catalogue, Summary, SyncStatus, Detail, ImportRecord, Intelligence, IntelligenceStatus, IntelligenceSummary, SourceData, NvdData, IntelligenceAttempt, TriageQuery, TriageResult } from './types';
+import type { CatalogueFilters, Catalogue, Summary, SyncStatus, Detail, ImportRecord, Intelligence, IntelligenceStatus, IntelligenceSummary, SourceData, NvdData, IntelligenceAttempt, TriageQuery, TriageResult, GhsaResult } from './types';
 export type ApiErrorCode='unreadable'|'http'|'source'|'busy'|'cooldown'|'database'|'notFound'|'validation';
 function errorCode(status:number,detail:string):ApiErrorCode {
  if(status===404)return 'notFound';if(status===422)return 'validation';if(status===502)return 'source';if(status===503)return 'database';
@@ -16,6 +16,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return body as T;
 }
 export const api = {
+  ghsa: (id:string,signal?:AbortSignal) => request<GhsaResult>(`/intelligence/ghsa/${encodeURIComponent(id)}`,{signal}),
+  fetchGhsa: (id:string,refresh:boolean,signal?:AbortSignal) => request<GhsaResult>(`/intelligence/ghsa/${encodeURIComponent(id)}?refresh=${refresh}`,{method:'POST',headers:{'X-Sentinel-Request':'sync'},signal}),
   triage: (filters:TriageQuery,signal?:AbortSignal) => {
     const params=new URLSearchParams();
     Object.entries(filters).forEach(([key,value])=>{if(value!==''&&value!==undefined)params.set(key,String(value));});
