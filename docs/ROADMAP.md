@@ -12,7 +12,8 @@
 - **R2 / v0.1.0-alpha.2:** published Intelligence Triage Edition Pre-release; Alpha 1, prior tags and source behavior preserved.
 - **R3 / v0.1.0:** First Stable Release baseline. Harmonized source/npm/cockpit version only; same functional scope as Alpha 2. Stable installation uses the immutable v0.1.0 tag after publication; GitHub Releases records its actual availability.
 - **After verified stable publication:** JLV paused development; a separate explicit GO on 2026-10-28 reopened only the P1-C pilot below. No automatic next phase, maintenance or monitoring.
-- **P1-C / target v0.1.1:** unreleased GHSA pilot on a dedicated branch: one explicitly requested local CVE, reviewed public advisories, preserved source fields, additive cache/provenance, FR/EN detail panel. OSV, bulk collection and automated alerts are excluded. PR review only; merge/tag/Release require a separate final GO.
+- **P1-C / GHSA INTELLIGENCE:** integrated into main by PR #9 on 2026-10-29, including the focused nullable-range correction. One explicitly requested local CVE, reviewed public advisories, original source fields, additive cache/provenance and FR/EN detail panel. The bounded pilot excludes OSV, bulk collection and automated alerts.
+- **R4 / v0.1.1 — GHSA Intelligence Edition:** source release candidate based on integrated P1-C, with coherent 0.1.1 metadata and current documentation/notes; no further functionality, dependency or refactoring. A source candidate is not a published tag/Release. Final documentary integration and publication require their explicit JLV authorization; GitHub Releases records actual availability.
 - **C1 / Chiara-MCP:** not engaged and remains outside the P1-C mandate.
 - **P2:** not implemented; any web-security-auditor concept remains a future
   specification, not a current URL audit or scanning capability.

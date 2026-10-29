@@ -4,13 +4,14 @@
 
 Apache-2.0 · [Français](README.fr.md) · [Contribute](CONTRIBUTING.md)
 
-**0.1.1 — GHSA Intelligence Pilot (unreleased).** This development branch adds explicit, targeted GitHub reviewed advisories to the existing CVE detail. The published stable baseline remains **v0.1.0**, without GHSA. No v0.1.1 tag or Release is created by this source version; check [GitHub Releases](https://github.com/JLV-73/sentinel-x/releases) for actual publication status. “Stable” is not a security certification.
+**0.1.1 — GHSA Intelligence Edition.** P1-C is integrated into main by PR #9: targeted, explicitly requested GitHub reviewed advisories complement CISA KEV, NVD/CVSS and FIRST EPSS. A source version or these notes do not publish a Release; check [GitHub Releases](https://github.com/JLV-73/sentinel-x/releases) for actual availability. The immutable v0.1.1 tag becomes usable after publication. Earlier stable v0.1.0 and both Alpha releases remain preserved. “Stable” is not a security certification.
 
 | Version | What you install |
 |---|---|
-| [p1c/ghsa-intelligence](https://github.com/JLV-73/sentinel-x/tree/p1c/ghsa-intelligence) | Unreleased GHSA pilot for review; not the published stable version |
+| [0.1.1 source notes](docs/RELEASE_v0.1.1.md) | GHSA Intelligence Edition baseline; actual tag/Release availability is recorded on GitHub Releases |
+| [p1c/ghsa-intelligence](https://github.com/JLV-73/sentinel-x/tree/p1c/ghsa-intelligence) | Preserved P1-C development reference, integrated by PR #9; not a release tag |
 | [v0.1.0](https://github.com/JLV-73/sentinel-x/tree/v0.1.0) | Published First Stable Release, without the GHSA pilot |
-| [main — Intelligence Triage](https://github.com/JLV-73/sentinel-x/tree/main) | Integrated KEV/NVD/EPSS cockpit plus consolidated read-only triage and independent, transparent filters |
+| [main — GHSA Intelligence](https://github.com/JLV-73/sentinel-x/tree/main) | Integrated KEV/NVD/EPSS/GHSA cockpit, read-only triage and explicit targeted enrichment |
 | [R3 source notes](docs/RELEASE_v0.1.0.md) | Stable source baseline, distribution and known limitations; GitHub Releases records actual availability |
 | [v0.1.0-alpha.2](https://github.com/JLV-73/sentinel-x/tree/v0.1.0-alpha.2) | Published frozen Alpha 2, with Intelligence Triage |
 | [v0.1.0-alpha.1](https://github.com/JLV-73/sentinel-x/tree/v0.1.0-alpha.1) | Frozen first official Alpha: P0.1 + P1-A, without the P1-B triage view |
@@ -33,6 +34,8 @@ You run the application locally and request official-source data yourself.
   severity/vector/version/provider remain distinct, with availability/freshness.
 - **FIRST EPSS:** manual refresh for local KEV identifiers; 30-day exploitation
   probability, percentile, source date and provenance remain separate.
+- **GHSA:** explicit anonymous reviewed-advisory lookup for one local CVE, original
+  package ranges/fixes, dates, withdrawals, severity and cache provenance; CC-BY-4.0 attribution.
 - **NIGHTFALL:** FR/EN cockpit, source-control view, FastAPI/SQLite and React/TypeScript.
 
 No startup collection, autonomous monitoring, scanner, alerting or composite score.
@@ -69,11 +72,11 @@ only reads the local cache. GitHub Advisory Database data is **CC-BY-4.0**, sepa
 from this project’s Apache-2.0 code; attribution and the original JSON remain available.
 See [the bounded pilot contract](docs/GHSA_PILOT_CONTRACT.md).
 
-**Installation choice:** the quick start below intentionally installs immutable stable
-`v0.1.0` (no GHSA). To evaluate this unreleased pilot in a **new isolated directory**,
-replace only `--branch v0.1.0` with `--branch p1c/ghsa-intelligence` in step 2;
-retain every other prerequisite and installation safeguard. Do not reuse an operational
-stable checkout or its data.
+**Installation choice:** the quick start selects immutable `v0.1.1`, usable only
+after its publication. Before that publication, the earlier published stable
+`v0.1.0` (without GHSA) remains available: replace only `--branch v0.1.1` with
+`--branch v0.1.0` in step 2. Always use a **new isolated directory** and retain
+every prerequisite and safeguard; never reuse an operational checkout or its data.
 
 ## A. TRY SENTINEL X — QUICK START
 
@@ -102,13 +105,13 @@ This explicitly leaves any initial PowerShell directory and uses your user home.
 
 ### 2. Download the immutable stable source
 
-**Availability:** the command below is usable **after the `v0.1.0` tag is published**.
+**Availability:** the command below is usable **after the `v0.1.1` tag is published**.
 Check [GitHub Releases](https://github.com/JLV-73/sentinel-x/releases) first.
 A **detached HEAD is normal** when checking out an immutable release tag.
 
 ```powershell
 if (Test-Path -LiteralPath .\sentinel-x) { throw "sentinel-x already exists. Use a new parent folder; do not delete it." }
-git clone --branch v0.1.0 https://github.com/JLV-73/sentinel-x.git
+git clone --branch v0.1.1 https://github.com/JLV-73/sentinel-x.git
 if ($LASTEXITCODE -ne 0) { throw "Clone failed. Stop here; do not run Python or npm." }
 Set-Location .\sentinel-x
 ```

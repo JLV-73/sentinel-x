@@ -4,14 +4,17 @@ Versioned releases and dated historical milestones. Publication status is establ
 
 The First Alpha integrates **P0.1 + P1-A** on its main candidate. The original CISA-only baseline remains frozen at `p0.1-international-stable`; [`p1/intelligence-core`](https://github.com/JLV-73/sentinel-x/tree/p1/intelligence-core) remains a preserved development reference. Earlier milestone entries describe their historical scopes. Clean-publication history is separate from the private local archive.
 
-## 0.1.1 — GHSA Intelligence Pilot — unreleased
+## 0.1.1 — GHSA Intelligence Edition
 
 - Adds explicitly requested, anonymous GitHub reviewed-advisory enrichment for one existing local KEV CVE; no catalogue-wide lookup or OSV connector.
 - Preserves original advisories, packages/ecosystems, affected ranges, first fixes, severity/vectors, dates and withdrawals in the bilingual CVE detail.
 - Distinguishes unrequested, confirmed empty, unavailable, stale and retained-after-error states; no risk score or equipment exposure diagnosis.
 - Reuses additive source=ghsa cache/control/attempt rows with lazy acquisition, raw-response hashes and CC-BY-4.0 attribution; no legacy schema replacement.
 - Bounds each explicit request to one official page/100 advisories, with a persistent 65-second minimum interval and provider quota/reset handling; no automatic retry or API key.
-- Targets source version 0.1.1 without creating a tag, Release or merge; published v0.1.0, both Alpha releases and their tags remain unchanged.
+- P1-C integrated into main by PR #9 on 2026-10-29 after visual validation, external review and a focused nullable-range fix.
+- A missing affected range displays Non renseigné / Not specified; provided strings and original JSON remain unchanged.
+- VERSION, npm metadata and the cockpit already identify 0.1.1; the dependency graph is unchanged.
+- GHSA Intelligence Edition source notes and equivalent FR/EN setup target immutable v0.1.1 after publication. A version heading does not create a tag/Release; GitHub Releases records actual availability. Previous Releases and tags remain preserved.
 
 ## 0.1.0 — First Stable Release
 
