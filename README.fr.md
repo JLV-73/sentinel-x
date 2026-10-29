@@ -4,13 +4,14 @@
 
 Apache-2.0 · [English](README.md) · [Contribuer](CONTRIBUTING.md)
 
-**0.1.1 — Pilote GHSA Intelligence (non publié).** Cette branche ajoute les avis GitHub reviewed, sur demande ciblée, dans la fiche CVE existante. La référence stable publiée reste **v0.1.0**, sans GHSA. Ce numéro source ne crée aucun tag ni Release v0.1.1 ; consulter les [Releases GitHub](https://github.com/JLV-73/sentinel-x/releases) pour le statut réel. « Stable » ne signifie pas certifié.
+**0.1.1 — GHSA Intelligence Edition.** P1-C est intégré dans main par la PR #9 : les avis GitHub reviewed, demandés explicitement pour une CVE locale, complètent CISA KEV, NVD/CVSS et FIRST EPSS. Ce numéro source et ces notes ne publient pas une Release ; consulter les [Releases GitHub](https://github.com/JLV-73/sentinel-x/releases) pour la disponibilité réelle. Le tag immuable v0.1.1 devient utilisable après publication. La stable antérieure v0.1.0 et les deux Alpha restent préservées. « Stable » ne signifie pas certifié.
 
 | Version | Ce qui est installé |
 |---|---|
-| [p1c/ghsa-intelligence](https://github.com/JLV-73/sentinel-x/tree/p1c/ghsa-intelligence) | Pilote GHSA non publié, soumis à revue ; pas la version stable publiée |
+| [Notes sources 0.1.1](docs/RELEASE_v0.1.1.md) | Référence GHSA Intelligence Edition ; disponibilité effective du tag/de la Release sur GitHub Releases |
+| [p1c/ghsa-intelligence](https://github.com/JLV-73/sentinel-x/tree/p1c/ghsa-intelligence) | Référence de développement P1-C conservée, intégrée par la PR #9 ; pas un tag de Release |
 | [v0.1.0](https://github.com/JLV-73/sentinel-x/tree/v0.1.0) | First Stable Release publiée, sans le pilote GHSA |
-| [main — Intelligence Triage](https://github.com/JLV-73/sentinel-x/tree/main) | Cockpit KEV/NVD/EPSS intégré, triage consolidé en lecture seule et filtres indépendants et transparents |
+| [main — GHSA Intelligence](https://github.com/JLV-73/sentinel-x/tree/main) | Cockpit KEV/NVD/EPSS/GHSA intégré, triage en lecture seule et enrichissements ciblés explicites |
 | [Notes sources R3](docs/RELEASE_v0.1.0.md) | Référence source stable, distribution et limites connues ; disponibilité effective dans les Releases GitHub |
 | [v0.1.0-alpha.2](https://github.com/JLV-73/sentinel-x/tree/v0.1.0-alpha.2) | Alpha 2 publiée et figée, avec Intelligence Triage |
 | [v0.1.0-alpha.1](https://github.com/JLV-73/sentinel-x/tree/v0.1.0-alpha.1) | Première Alpha officielle figée : P0.1 + P1-A, sans le triage P1-B |
@@ -33,6 +34,8 @@ L’application tourne chez toi ; tu demandes les données des sources officiell
   gravité/vecteur/version/fournisseur séparés, disponibilité et fraîcheur.
 - **FIRST EPSS :** actualisation manuelle des identifiants KEV locaux ; probabilité
   d'exploitation à 30 jours, percentile, date source et provenance distincts.
+- **GHSA :** recherche anonyme explicite d’avis reviewed pour une CVE locale, plages/
+  correctifs originaux, dates, retraits, gravité et provenance du cache ; attribution CC-BY-4.0.
 - **NIGHTFALL :** cockpit FR/EN, contrôle des sources, FastAPI/SQLite et React/TypeScript.
 
 Aucune collecte au démarrage, surveillance autonome, analyse réseau, alerte ou score
@@ -71,11 +74,12 @@ de fond. Ouvrir une fiche/changer de langue ne lit que le cache local. Les donn�
 GitHub Advisory Database sont **CC-BY-4.0**, distinctes du code Apache-2.0 ; attribution
 et JSON d’origine restent disponibles. Voir le [contrat du pilote borné](docs/GHSA_PILOT_CONTRACT.md).
 
-**Choix d’installation :** le démarrage rapide ci-dessous installe volontairement
-la stable immuable `v0.1.0` (sans GHSA). Pour évaluer ce pilote non publié dans un
-**nouveau dossier isolé**, remplacer uniquement `--branch v0.1.0` par
-`--branch p1c/ghsa-intelligence` à l’étape 2 ; conserver tous les autres prérequis
-et garde-fous. Ne pas réutiliser une installation stable opérationnelle ni ses données.
+**Choix d’installation :** le démarrage rapide sélectionne le tag immuable
+`v0.1.1`, utilisable uniquement après sa publication. Avant cette publication,
+la stable antérieure publiée `v0.1.0` (sans GHSA) reste disponible : remplacer
+uniquement `--branch v0.1.1` par `--branch v0.1.0` à l’étape 2. Toujours choisir
+un **nouveau dossier isolé** et conserver tous les prérequis/garde-fous ; ne pas
+réutiliser une installation opérationnelle ni ses données.
 
 ## A. ESSAYER SENTINEL X — DÉMARRAGE RAPIDE
 
@@ -104,13 +108,13 @@ Le positionnement explicite quitte le dossier initial de PowerShell pour ton dos
 
 ### 2. Télécharger les sources stables immuables
 
-**Disponibilité :** la commande ci-dessous sera utilisable **après publication du tag `v0.1.0`**.
+**Disponibilité :** la commande ci-dessous sera utilisable **après publication du tag `v0.1.1`**.
 Vérifier d’abord les [Releases GitHub](https://github.com/JLV-73/sentinel-x/releases).
 Un **HEAD détaché est normal** lors du clonage d’un tag de Release immuable.
 
 ```powershell
 if (Test-Path -LiteralPath .\sentinel-x) { throw "sentinel-x already exists. Use a new parent folder; do not delete it." }
-git clone --branch v0.1.0 https://github.com/JLV-73/sentinel-x.git
+git clone --branch v0.1.1 https://github.com/JLV-73/sentinel-x.git
 if ($LASTEXITCODE -ne 0) { throw "Clone failed. Stop here; do not run Python or npm." }
 Set-Location .\sentinel-x
 ```
