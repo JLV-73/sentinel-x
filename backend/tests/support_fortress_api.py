@@ -89,6 +89,8 @@ def _project(result, payload):
         if type(code) is not str or code != expected_code or base not in candidates:
             raise ValueError()
         status = item['status']
+        if execution[item['route_index'] - 1]['state'] != 'completed':
+            status, code = 'indeterminate', 'indeterminate'
         projected.append({'id': name, 'status': status, 'severity': 'low' if status == 'attention' else 'info' if status == 'conformant' else 'unknown',
                           'reason': 'See status.', 'evidence': 'Details withheld.',
                           'limitations': 'Incomplete prototype.', 'preconditions': 'Authorized observation required.',

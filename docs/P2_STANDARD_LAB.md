@@ -2,9 +2,11 @@
 
 Cette démonstration locale isolée est distincte de l’application normale et de
 `START_SENTINEL.cmd`. Elle ne lance aucun audit de site externe : les résultats
-proviennent uniquement d’une réponse synthétique locale ; le DNS et le pair public
-sont simulés. Ce n’est ni une validation de production ni une certification de
-sécurité. Aucun site utilisateur réel n’est audité.
+proviennent uniquement d’une réponse synthétique locale. La connexion HTTPS/TLS
+sur loopback valide le certificat uniquement contre la CA du laboratoire, avec SAN
+et SNI ; le DNS et le pair public sont simulés. Ce n’est pas une preuve TLS publique,
+ni une validation de production ou une certification de sécurité. Aucun site
+utilisateur réel n’est audité.
 
 ## Lancer sous Windows
 
@@ -19,8 +21,11 @@ Set-Location '<path-to-checkout>'
 ```
 
 Gardez la fenêtre ouverte et ouvrez manuellement dans un navigateur l’URL locale
-affichée : aucun navigateur n’est ouvert automatiquement. Choisissez un scénario,
-puis cliquez sur « Exécuter le test ». Le laboratoire expire après environ 60 secondes.
+affichée : aucun navigateur n’est ouvert automatiquement. L’interface locale utilise
+HTTP sur 127.0.0.1 ; la route synthétique observée est `GET https://standard-lab.invalid/`
+et sa connexion TLS est redirigée vers la fixture loopback, sans DNS public. Choisissez
+un scénario, cochez la case autorisant uniquement ce GET synthétique, puis cliquez
+sur « Exécuter le test ». Le laboratoire expire après environ 60 secondes.
 Ctrl+Break a été vérifié pour l’arrêter avant ; Ctrl+C n’a pas été vérifié.
 
 ## Lire les résultats

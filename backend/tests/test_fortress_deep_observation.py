@@ -14,6 +14,10 @@ def transport_for(payloads):
 
 
 def response(status=200, body=b'', header=b''):
+    if status == 204:
+        if body:
+            raise ValueError('204 responses cannot contain a body')
+        return b'HTTP/1.1 204 Result\r\n' + header + b'\r\n'
     return b'HTTP/1.1 ' + str(status).encode() + b' Result\r\n' + header + b'Content-Length: ' + str(len(body)).encode() + b'\r\n\r\n' + body
 
 

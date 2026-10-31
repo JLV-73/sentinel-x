@@ -1,6 +1,7 @@
 """Experimental owned-loopback standard lab. Not connected to production API.
 
-The public peer and DNS are simulated; this cannot validate real TLS or SSRF.
+The public peer and DNS are simulated. TLS is real but uses a public test-only
+CA and key; this does not validate public TLS or real-world SSRF protection.
 """
 import json
 import http.server
@@ -9,6 +10,7 @@ import signal
 import time
 from pathlib import Path
 import socket
+import ssl
 import sys
 import threading
 
@@ -22,6 +24,7 @@ from support_fortress_api import _project
 HOST = 'standard-lab.invalid'
 FAKE_IP = '93.184.216.34'  # identity simulated; never contacted
 SCENARIOS = frozenset(('positive', 'negative', 'indeterminate'))
+TLS_FIXTURE = ROOT / 'scripts' / 'fortress_lab_tls'
 
 
 class FixtureSocket:
@@ -35,7 +38,7 @@ class FixtureSocket:
         return getattr(self.sock, name)
 
     def connect(self, destination):
-        if (destination != (FAKE_IP, 80) or self.listener.fileno() < 0
+        if (destination != (FAKE_IP, 443) or self.listener.fileno() < 0
                 or self.listener.getsockname() != self.address or self.address[0] != '127.0.0.1'):
             raise RuntimeError('fixture only')
         self.sock.connect(self.address)
@@ -46,13 +49,21 @@ class FixtureSocket:
     def getpeername(self):
         if not self.connected:
             raise RuntimeError('not connected')
-        return (FAKE_IP, 80)
+        return (FAKE_IP, 443)
+
+
+def _fixture_response(scenario):
+    """Owned synthetic bytes; only the fixed scenario selector reaches here."""
+    if scenario == 'indeterminate':
+        return b'HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\nConnection: close\r\n\r\n'
+    cookie = b'Set-Cookie: lab-cookie=lab-secret; HttpOnly; SameSite=Lax' + (b'; Secure' if scenario == 'positive' else b'') + b'\r\n'
+    return b'HTTP/1.1 200 OK\r\n' + cookie + b'Content-Length: 0\r\nConnection: close\r\n\r\n'
 
 
 def run_scenario(scenario):
     if type(scenario) is not str or scenario not in SCENARIOS:
         raise ValueError('unknown scenario')
-    payload = {'level': 'standard', 'authorized': True, 'routes': [{'url': 'http://' + HOST + '/',
+    payload = {'level': 'standard', 'authorized': True, 'routes': [{'url': 'https://' + HOST + '/',
         'safe_use_confirmed': True, 'methods': ['GET'], 'cors_get': False, 'parameters': []}]}
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
         if hasattr(socket, 'SO_EXCLUSIVEADDRUSE'):
@@ -61,41 +72,50 @@ def run_scenario(scenario):
         listener.listen(1)
         listener.settimeout(3)
         requests = []
+        server_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        server_context.load_cert_chain(TLS_FIXTURE / 'server.pem', TLS_FIXTURE / 'server-key.pem')
+        def check_sni(sock, name, context):
+            if name != HOST:
+                return ssl.ALERT_DESCRIPTION_UNRECOGNIZED_NAME
+        server_context.set_servername_callback(check_sni)
+        client_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        client_context.load_verify_locations(cafile=str(TLS_FIXTURE / 'ca.pem'))
         def fixture():
             try:
                 conn, peer = listener.accept()
                 with conn:
                     conn.settimeout(2)
-                    data = b''
-                    while b'\r\n\r\n' not in data and len(data) < 8192:
-                        part = conn.recv(2048)
-                        if not part:
-                            return
-                        data += part
-                    if (peer[0] != '127.0.0.1' or not data.startswith(b'GET / HTTP/1.1\r\nHost: standard-lab.invalid\r\n')
-                            or b'\r\nCookie:' in data or b'\r\nAuthorization:' in data):
+                    if peer[0] != '127.0.0.1':
                         return
-                    requests.append(1)
-                    if scenario == 'indeterminate':
-                        response = b'HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\nConnection: close\r\n\r\n'
-                    else:
-                        cookie = b'Set-Cookie: lab-cookie=lab-secret; HttpOnly; SameSite=Lax' + (b'; Secure' if scenario == 'positive' else b'') + b'\r\n'
-                        response = b'HTTP/1.1 200 OK\r\n' + cookie + b'Content-Length: 0\r\nConnection: close\r\n\r\n'
-                    conn.sendall(response)
+                    conn = server_context.wrap_socket(conn, server_side=True)
+                    with conn:
+                        serve_fixture(conn, peer)
             except OSError:
                 return
+        def serve_fixture(conn, peer):
+            data = b''
+            while b'\r\n\r\n' not in data and len(data) < 8192:
+                part = conn.recv(2048)
+                if not part:
+                    return
+                data += part
+            if (peer[0] != '127.0.0.1' or not data.startswith(b'GET / HTTP/1.1\r\nHost: standard-lab.invalid\r\n')
+                    or b'\r\nCookie:' in data or b'\r\nAuthorization:' in data):
+                return
+            requests.append(1)
+            conn.sendall(_fixture_response(scenario))
         worker = threading.Thread(target=fixture, daemon=True)
         worker.start()
         def resolver(host, port, *, type):
-            if (host, port, type) != (HOST, 80, socket.SOCK_STREAM):
+            if (host, port, type) != (HOST, 443, socket.SOCK_STREAM):
                 raise RuntimeError('unexpected DNS')
-            return [(socket.AF_INET, socket.SOCK_STREAM, 0, '', (FAKE_IP, 80))]
+            return [(socket.AF_INET, socket.SOCK_STREAM, 0, '', (FAKE_IP, 443))]
         def socket_factory(family, kind, protocol):
             if (family, kind, protocol) != (socket.AF_INET, socket.SOCK_STREAM, 0):
                 raise RuntimeError('unexpected socket')
             return FixtureSocket(listener)
         def factory(scope, **kwargs):
-            return SafeTransport(scope, resolver=resolver, socket_factory=socket_factory, timeout=2, deadline=3, **kwargs)
+            return SafeTransport(scope, resolver=resolver, socket_factory=socket_factory, tls_context=client_context, timeout=2, deadline=3, **kwargs)
         try:
             result = _audit_with_factory(payload, factory=factory)
             worker.join(3)
@@ -157,6 +177,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         capability = self.headers.get_all('X-Fortress-Capability', [])
         lengths = self.headers.get_all('Content-Length', [])
         if (not self.common() or self.path != '/lab/audit' or self.headers.get_all('Origin') != [origin]
+                or self.headers.get_all('Sec-Fetch-Site', []) not in ([], ['same-origin'])
+                or self.headers.get_all('Sec-Fetch-Mode', []) not in ([], ['cors'])
+                or self.headers.get_all('Sec-Fetch-Dest', []) not in ([], ['empty'])
                 or self.headers.get_all('X-Fortress-CSRF') != ['same-origin']
                 or self.headers.get_all('Content-Type') != ['application/json']
                 or len(capability) != 1 or not capability[0].isascii()
@@ -172,7 +195,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return d
         try:
             data = json.loads(self.rfile.read(int(lengths[0])), object_pairs_hook=pairs)
-            if type(data) is not dict or set(data) != {'scenario'} or type(data['scenario']) is not str or data['scenario'] not in SCENARIOS:
+            if (type(data) is not dict or set(data) != {'scenario', 'route_authorized'}
+                    or data['route_authorized'] is not True
+                    or type(data['scenario']) is not str or data['scenario'] not in SCENARIOS):
                 raise ValueError()
         except (ValueError, UnicodeError, OSError, RecursionError):
             self.send(400, b'{}'); return

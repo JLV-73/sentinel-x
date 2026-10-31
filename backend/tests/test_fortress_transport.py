@@ -677,6 +677,22 @@ def test_restricted_redirect_must_be_individually_authorized_before_dns():
     assert resolver.call_count == 1 and len(first.sent) == 1
 
 
+@pytest.mark.parametrize('length', [b'0', b'5'])
+def test_204_content_length_is_rejected_without_header_facts(length):
+    payload = (b'HTTP/1.1 204 No Content\r\nContent-Length: ' + length +
+               b'\r\nX-Content-Type-Options: nosniff\r\n\r\n')
+    transport, _, resolver, _ = build(payload)
+    assert transport.observe_headers('GET', URL) == {'outcome': 'error'}
+    assert transport.blocked
+    assert transport.observe_headers('GET', URL) == {'outcome': 'error'}
+    assert resolver.call_count == 1
+
+
+def test_204_without_content_length_remains_supported():
+    transport, _, _, _ = build(b'HTTP/1.1 204 No Content\r\n\r\n')
+    assert transport.observe_headers('GET', URL)['outcome'] == 'ok'
+
+
 def test_standard_transport_rejects_non_get_before_dns():
     resolver = Mock(return_value=[answer()])
     t = SafeTransport(validate_scope(URL, []), resolver=resolver, socket_factory=Mock(),

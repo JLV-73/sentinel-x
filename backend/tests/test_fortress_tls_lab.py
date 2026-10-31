@@ -170,6 +170,42 @@ def test_real_tls_rejects_hostname_mismatch_or_untrusted_ca(certificates, hostna
     assert lab.record['server_errors']
 
 
+@pytest.mark.parametrize('payload', [
+    b'HTTP/1.1 204 No Content\r\nContent-Length: 0\r\n\r\n',
+    b'HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n2\r\nOK\r\n0\r\n\r\n',
+])
+def test_real_tls_refuses_unsupported_or_invalid_framing(certificates, payload):
+    class FramingLab(TLSLab):
+        def _serve(self):
+            try:
+                connection, _ = self.listener.accept()
+                with connection, self.context.wrap_socket(connection, server_side=True) as tls:
+                    self.record['handshake_complete'] = True
+                    while b'\r\n\r\n' not in self.record['request']:
+                        part = tls.recv(2048)
+                        if not part:
+                            return
+                        self.record['request'] += part
+                    tls.sendall(payload)
+            except OSError as exc:
+                self.record['server_errors'].append(type(exc).__name__)
+            finally:
+                self.listener.close()
+    lab = FramingLab(certificates)
+    try:
+        transport, url = transport_for(lab, HOST, client_context(certificates / 'ca.pem'))
+        assert transport.observe_headers('GET', url) == {'outcome': 'error'}
+        assert transport.blocked
+        assert transport.observe_headers('GET', url) == {'outcome': 'error'}
+    finally:
+        lab.finish()
+    assert lab.record['handshake_complete'] and lab.record['sni'] == [HOST]
+    assert lab.record['request'].count(b'GET ') == 1
+    assert lab.record['actual_connected_peer'] == lab.address
+    assert lab.record['simulated_reported_peer'] == APPROVED
+    assert not lab.record['server_errors']
+
+
 def test_fake_peer_mismatch_refused_before_tls_or_http():
     class FakePeer:
         def settimeout(self, timeout): pass

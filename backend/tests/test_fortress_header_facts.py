@@ -96,6 +96,26 @@ def test_incomplete_or_blocked_never_returns_positive_or_absent(payload):
     result = build(payload)[0].observe_headers('GET', URL)
     assert result['outcome'] != 'ok'
     assert set(result.get('security_headers', {}).values()) <= {'unknown'}
+    assert set(result.get('header_value_facts', {}).values()) <= {'unknown'}
+
+
+@pytest.mark.parametrize('line,expected', [
+    (b'X-Content-Type-Options: \tNoSniff \t\r\n', 'recognized_nosniff'),
+    (b'X-Content-Type-Options: sentinel-secret\r\n', 'other_token'),
+    (b'X-Content-Type-Options: \t \r\n', 'invalid'),
+    (b'X-Content-Type-Options: nosniff, nosniff\r\n', 'unknown'),
+    (b'X-Content-Type-Options: no sniff\r\n', 'unknown'),
+    (b'X-Content-Type-Options: no\tsniff\r\n', 'unknown'),
+    (b'X-Content-Type-Options: \xff\r\n', 'unknown'),
+    (b'X-Content-Type-Options: ' + b'a' * 4097 + b'\r\n', 'unknown'),
+    (b'X-Content-Type-Options: nosniff\r\nx-content-type-options: nosniff\r\n', 'unknown'),
+    (b'', 'absent'),
+])
+def test_value_facts_are_bounded_and_do_not_expose_header_value(line, expected):
+    payload = b'HTTP/1.1 200 OK\r\n' + line + b'Content-Length: 0\r\n\r\n'
+    result = build(payload)[0].observe_headers('GET', URL)
+    assert result['header_value_facts'] == {'x_content_type_options': expected}
+    assert 'sentinel-secret' not in repr(result)
 
 
 def test_redirect_has_only_unknown_facts_and_no_private_data():
@@ -106,4 +126,5 @@ def test_redirect_has_only_unknown_facts_and_no_private_data():
                       socket_factory=Mock(side_effect=[first, second]))
     result = t.observe_headers('GET', URL)
     assert result['redirected'] is True and set(result['security_headers'].values()) == {'unknown'}
+    assert result['header_value_facts'] == {'x_content_type_options': 'unknown'}
     assert 'sentinel' not in repr(result) and 'example.com' not in repr(result)

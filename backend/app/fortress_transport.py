@@ -192,6 +192,21 @@ def _header_facts(headers, complete):
     return result
 
 
+def _header_value_facts(headers, complete):
+    """Finite syntax observations only; not a protection assessment."""
+    values = [v for k, v in headers if k.lower() == 'x-content-type-options']
+    fact = 'unknown'
+    if complete and not values:
+        fact = 'absent'
+    elif complete and len(values) == 1:
+        value = values[0].strip(' \t')
+        if not value:
+            fact = 'invalid'
+        elif len(value) <= 4096 and re.fullmatch(r"[!#$%&'*+.^_`|~0-9A-Za-z-]+", value):
+            fact = 'recognized_nosniff' if value.lower() == 'nosniff' else 'other_token'
+    return {'x_content_type_options': fact}
+
+
 def _cookie_facts(headers):
     count = secure = httponly = samesite = indeterminate = 0
     for key, value in headers:
@@ -437,7 +452,9 @@ class SafeTransport:
             facts = dict(zip(('count', 'missing_secure', 'missing_httponly', 'missing_samesite', 'indeterminate'), response.cookies))
             result = {'outcome': 'blocked' if response.blocked else 'indeterminate' if response.indeterminate else 'ok', 'cookies': facts}
             if include_security_headers:
-                result['security_headers'] = _header_facts(response.headers, not response.blocked and not response.indeterminate and response.headers_complete and self.count - before == 1)
+                complete = not response.blocked and not response.indeterminate and response.headers_complete and self.count - before == 1
+                result['security_headers'] = _header_facts(response.headers, complete)
+                result['header_value_facts'] = _header_value_facts(response.headers, complete)
                 if (not response.blocked and not response.indeterminate and response.headers_complete and
                     self.count - before == 1 and response.tls_version in ('TLSv1.2', 'TLSv1.3')):
                     result['tls'] = {'certificate': 'verified', 'protocol': response.tls_version}
@@ -665,6 +682,10 @@ class SafeTransport:
                     checked_sock.stream.checking = False
                     self._remaining()
                     raw_headers = response.getheaders()
+                    # HTTPResponse suppresses bodies for 204 even when an illegal
+                    # Content-Length is present; never derive facts from it.
+                    if response.status == 204 and checked_sock.stream.content_length:
+                        raise TransportError('invalid 204 framing')
                     if response.status in (401, 403, 429) or any(
                         k.lower() in ('cf-mitigated', 'x-sucuri-block', 'retry-after') for k, _ in raw_headers
                     ):
