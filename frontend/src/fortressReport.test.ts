@@ -11,11 +11,32 @@ describe('standalone fortress report',()=>{
   }
  });
  it('exports a report renderer',()=>expect(report.renderFortressReport).toBeTypeOf('function'));
+ it('explains reported classifications without converting them into observations',()=>{
+  const input={complete:true,requests_used:1,findings:[{id:'hsts',status:'attention',severity:'low',method:'GET',route:'/'}]};
+  for(const [locale,explanation] of [['en','The reported classification calls for review; it does not establish impact.'],['fr','La classification transmise appelle un examen ; elle ne démontre pas un impact.']] as const){
+   const html=report.renderFortressReport(input,locale);
+   expect(html).toContain(explanation);
+   expect(html).toContain(locale==='fr'?'preuve structurée est non disponible':'structured evidence is not available');
+  }
+ });
  it('escapes untrusted text, redacts URL queries and has offline print styles',()=>{
   const result={audit_id:'<img src=x onerror=alert(1)>',mode:'deep',started_at:'now',finished_at:'now',scope:{origin:'https://example.test',paths:['/path?token=secret']},requests_used:1,complete:false,findings:[{id:'x',status:'attention' as const,severity:'low',reason:'<script>alert(1)</script>',evidence:'https://example.test/path?key=secret',limitations:'none',preconditions:'none',recommendation:'fix',reference:'OWASP',method:'GET',route:'/path?key=secret',date:'today'}],limitations:['bounded']};
   const html=report.renderFortressReport(result,'fr');
   expect(html).not.toContain('<script>');expect(html).not.toContain('secret');expect(html).not.toContain('&lt;script&gt;');expect(html).toContain('@media print');expect(html).toContain('default-src');expect(html).not.toMatch(/<(script|link|img)\b/i);expect(html).toContain('Rapport d’audit local');
  });
+});
+
+it('explains every accepted classification without presenting it as evidence',()=>{
+ const findings=[{id:'hsts',status:'conformant',severity:'info'},{id:'hsts',status:'attention',severity:'low'},{id:'reflection',status:'suspected',severity:'medium'},{id:'redirect',status:'confirmed',severity:'medium'},{id:'version',status:'indeterminate',severity:'unknown'}];
+ for(const locale of ['en','fr'] as const){
+  const doc=new DOMParser().parseFromString(report.renderFortressReport({complete:false,requests_used:0,findings},locale),'text/html');
+  expect(doc.querySelectorAll('article')).toHaveLength(findings.length);
+  for(const a of doc.querySelectorAll('article')){
+   const fields=[...a.querySelectorAll('dt')].map(dt=>dt.textContent);
+   expect(fields).toContain(locale==='fr'?'Interprétation de la classification':'Classification meaning');
+   expect(a.textContent).toContain(locale==='fr'?'preuve structurée est non disponible':'structured evidence is not available');
+  }
+ }
 });
 
 it('never exports arbitrary secret-bearing response fields',()=>{

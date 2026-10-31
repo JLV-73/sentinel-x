@@ -83,8 +83,7 @@ export interface TriageResult {
  filters:TriageQuery; cisa_provenance:ImportRecord|null; items:TriageItem[];
 }
 
-export type FortressLevel='standard'|'deep';
-export interface FortressParameter {url:string;name:string;kind:'reflection'|'redirect'}
-export interface FortressRequest {target:string;additional_urls:string[];level:FortressLevel;authorized:true;parameters:FortressParameter[]}
+export interface FortressRoute {url:string;safe_use_confirmed:true;methods:['GET'];cors_get:false;parameters:[]}
+export interface FortressRequest {level:'standard';authorized:true;routes:FortressRoute[]}
 export interface FortressFinding {id:string;status:'conformant'|'attention'|'suspected'|'confirmed'|'indeterminate';severity:string;reason:string;evidence:string;limitations:string;preconditions:string;recommendation:string;reference:string;method:string;route:string;date:string}
 export interface FortressResult {audit_id:string;mode:string;started_at:string;finished_at:string;scope:{origin:string;paths:string[]};requests_used:number;complete:boolean;findings:FortressFinding[];limitations:string[]}

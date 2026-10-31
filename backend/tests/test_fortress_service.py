@@ -10,10 +10,58 @@ def audit(request, *, transport_factory, language='en'):
         return service._audit(request, language=language)
 
 
+def test_header_absence_uses_one_shared_observation():
+    instances = []
+    class HeaderFake(Fake):
+        def observe(self, method, url):
+            raise AssertionError('legacy observer forbidden')
+        def observe_headers(self, method, url):
+            self.count += 1
+            self.calls.append((method, url))
+            return {'outcome': 'ok', 'security_headers': {'hsts': 'absent', 'csp': 'present',
+                    'x_content_type_options': 'invalid', 'referrer_policy': 'unknown',
+                    'permissions_policy': 'absent', 'extra-secret': 'absent'},
+                    'cookies': {'count': 1, 'missing_secure': 1, 'missing_httponly': 0,
+                                'missing_samesite': 0, 'indeterminate': 0}}
+    def factory(*args, **kwargs):
+        instances.append(HeaderFake(*args, **kwargs))
+        return instances[-1]
+    result = audit(payload(), transport_factory=factory)
+    findings = {f['id']: f for f in result['findings']}
+    assert findings['hsts']['status'] == findings['permissions_policy']['status'] == 'attention'
+    assert 'Not observed in the completed check' in findings['hsts']['evidence']
+    assert all(findings[k]['status'] == 'indeterminate' for k in ('csp', 'x_content_type_options', 'referrer_policy'))
+    assert findings['cookie_attributes']['status'] == 'attention'
+    assert result['requests_used'] == len(instances[0].calls) == 1
+    assert 'extra-secret' not in json.dumps(result) and 'private-secret-path' not in json.dumps(result)
+    assert result['complete'] is False
+
+
+@pytest.mark.parametrize('observation,increment', [
+    ({'outcome': 'ok'}, 1),
+    ({'outcome': 'ok', 'security_headers': {'hsts': 'unknown'}}, 1),
+    ({'outcome': 'ok', 'security_headers': {'hsts': 'invalid'}}, 1),
+    ({'outcome': 'ok', 'security_headers': {'hsts': 'present'}}, 1),
+    ({'outcome': 'ok', 'security_headers': {'hsts': 'absent'}, 'redirected': True}, 1),
+    ({'outcome': 'ok', 'security_headers': {'hsts': 'absent'}, 'redirected': 0}, 1),
+    ({'outcome': 'ok', 'security_headers': {'hsts': 'absent'}}, 2),
+    ({'outcome': 'error', 'security_headers': {'hsts': 'absent'}}, 1),
+])
+def test_header_uncertainty_never_reports_absence(observation, increment):
+    class HeaderFake(Fake):
+        def observe_headers(self, method, url):
+            self.count += increment
+            self.calls.append((method, url))
+            return observation
+    result = audit(payload(), transport_factory=HeaderFake)
+    assert result['requests_used'] == increment
+    assert next(f for f in result['findings'] if f['id'] == 'hsts')['status'] == 'indeterminate'
+
+
 def test_consent_refused_before_transport_construction():
     calls = []
     with pytest.raises(AuditError, match='invalid audit request'):
-        audit({'target': 'https://example.invalid/', 'additional_urls': [], 'level': 'standard', 'authorized': False, 'parameters': []}, transport_factory=lambda *a, **k: calls.append(1))
+        audit(payload(authorized=False), transport_factory=lambda *a, **k: calls.append(1))
     assert calls == []
 
 import socket
@@ -24,7 +72,13 @@ import threading
 
 
 def payload(**changes):
-    result = {'target': 'https://example.invalid/private-secret-path', 'additional_urls': [], 'level': 'standard', 'authorized': True, 'parameters': []}
+    target = changes.pop('target', 'https://example.invalid/private-secret-path')
+    extras = changes.pop('additional_urls', [])
+    parameters = changes.pop('parameters', [])
+    result = {'level': 'standard', 'authorized': True, 'routes': [
+        {'url': url, 'safe_use_confirmed': True, 'methods': ['GET'],
+         'cors_get': False, 'parameters': parameters if index == 0 else []}
+        for index, url in enumerate([target] + extras)]}
     result.update(changes)
     return result
 
@@ -38,17 +92,21 @@ def no_network(monkeypatch):
 
 
 class Fake:
-    def __init__(self, scope, *, max_requests):
+    def __init__(self, scope, *, max_requests, allowed_methods):
         assert max_requests == 30
+        assert allowed_methods == frozenset((route, 'GET') for route in scope.routes)
         self.count = 0
         self.blocked = False
         self.calls = []
         self.observations = []
 
+    def observe_headers(self, method, url):
+        return self.observe(method, url)
+
     def observe(self, method, url):
         self.count += 1
         self.calls.append((method, url))
-        return self.observations.pop(0) if self.observations else {'outcome': 'ok', 'cookies': {'count': 1, 'missing_secure': 1, 'missing_httponly': 0, 'missing_samesite': 0, 'indeterminate': 0}}
+        return self.observations.pop(0) if self.observations else {'outcome': 'ok', 'redirected': False, 'cookies': {'count': 1, 'missing_secure': 1, 'missing_httponly': 0, 'missing_samesite': 0, 'indeterminate': 0}}
 
 
 @pytest.mark.parametrize('changes', [
@@ -107,15 +165,39 @@ def test_non_ok_stops_later_routes(observation):
 ])
 def test_incomplete_cookie_evidence_does_not_claim_absence(cookies):
     def factory(*a, **k):
-        fake = Fake(*a, **k); fake.observations = [{'outcome':'ok', 'cookies': cookies}]; return fake
+        fake = Fake(*a, **k); fake.observations = [{'outcome':'ok', 'redirected': False, 'cookies': cookies}]; return fake
     result = audit(payload(), transport_factory=factory)
+    assert next(x for x in result['findings'] if x['id'] == 'cookie_attributes')['status'] == 'indeterminate'
+
+
+@pytest.mark.parametrize('marker', [True, 0, 'false'])
+def test_untrusted_redirect_marker_never_attributes_cookies(marker):
+    def factory(*a, **k):
+        fake = Fake(*a, **k)
+        observation = {'outcome': 'ok', 'cookies': {'count': 1, 'missing_secure': 1, 'missing_httponly': 0, 'missing_samesite': 0, 'indeterminate': 0}}
+        if marker is not None:
+            observation['redirected'] = marker
+        fake.observations = [observation]
+        return fake
+    result = audit(payload(), transport_factory=factory)
+    assert next(x for x in result['findings'] if x['id'] == 'cookie_attributes')['status'] == 'indeterminate'
+
+
+def test_multiple_attempts_never_attribute_cookies_even_if_marker_missing_or_false():
+    class Multiple(Fake):
+        def observe(self, method, url):
+            observation = super().observe(method, url)
+            self.count += 1
+            return observation
+    result = audit(payload(), transport_factory=Multiple)
+    assert result['requests_used'] == 2
     assert next(x for x in result['findings'] if x['id'] == 'cookie_attributes')['status'] == 'indeterminate'
 
 
 @pytest.mark.parametrize('parameters', [[], [{'url':'https://example.invalid/private-secret-path','name':'q','kind':'redirect'}], [{'url':'https://example.invalid/private-secret-path','name':'q','kind':'reflection'}]])
 def test_deep_mode_rejected_before_transport(parameters):
     calls = []
-    with pytest.raises(AuditError, match='deep mode unavailable'):
+    with pytest.raises(AuditError, match='invalid audit request'):
         audit(payload(level='deep', parameters=parameters), transport_factory=lambda *a, **k: calls.append(1))
     assert not calls
 
@@ -138,6 +220,31 @@ def test_global_nonblocking_lock_and_release_after_error():
     assert not t.is_alive() and len(results) == 1
     assert 'secret error' not in json.dumps(results)
     assert audit(payload(), transport_factory=Fake)['requests_used'] == 1
+
+
+def test_redirected_final_cookie_is_not_attributed_to_initial_route():
+    from unittest.mock import Mock
+    from app.fortress_transport import SafeTransport
+    from test_fortress_transport import FakeSocket, answer
+
+    first = FakeSocket(b'HTTP/1.1 302 Found\r\nLocation: /second\r\nSet-Cookie: a=secret; Secure; HttpOnly; SameSite=Lax\r\nContent-Length: 0\r\n\r\n')
+    redirected = FakeSocket(b'HTTP/1.1 200 OK\r\nSet-Cookie: b=secret\r\nContent-Length: 0\r\n\r\n')
+    direct = FakeSocket(b'HTTP/1.1 200 OK\r\nSet-Cookie: c=secret\r\nContent-Length: 0\r\n\r\n')
+    resolver = Mock(return_value=[answer()])
+    factory = Mock(side_effect=[first, redirected, direct])
+    instances = []
+    def build_real(scope, **kwargs):
+        t = SafeTransport(scope, resolver=resolver, socket_factory=factory, **kwargs)
+        instances.append(t)
+        return t
+    result = audit(payload(target='http://example.com/first', additional_urls=['http://example.com/second']), transport_factory=build_real)
+    statuses = [x['status'] for x in result['findings'] if x['id'] == 'cookie_attributes']
+    assert statuses == ['indeterminate', 'attention']
+    assert [x['status'] for x in result['findings'] if x['id'] == 'hsts'] == ['indeterminate', 'attention']
+    assert result['requests_used'] == instances[0].count == resolver.call_count == factory.call_count == 3
+    assert [s.sent[0].split(b'\r\n')[0] for s in (first, redirected, direct)] == [b'GET /first HTTP/1.1', b'GET /second HTTP/1.1', b'GET /second HTTP/1.1']
+    assert 'example.com' not in json.dumps(result) and 'secret' not in json.dumps(result)
+    assert all(x['status'] != 'conformant' for x in result['findings'])
 
 
 def test_redirect_attempts_count_against_budget_and_halt():
@@ -257,3 +364,24 @@ def test_caller_supplied_ip_field_is_rejected_before_any_transport():
     with pytest.raises(AuditError, match='invalid audit request'):
         audit(payload(level='deep', ip='127.0.0.1'), transport_factory=lambda *a, **k: calls.append(1))
     assert calls == []
+
+
+@pytest.mark.parametrize('change', [
+    {'safe_use_confirmed': False}, {'safe_use_confirmed': 1}, {'methods': []},
+    {'methods': ['HEAD']}, {'methods': ['GET', 'OPTIONS']},
+    {'cors_get': True}, {'parameters': [{'name': 'q'}]}, {'url': 'https://example.invalid/?q=x'},
+])
+def test_standard_route_rejects_unconsented_features_before_transport(change):
+    request = payload()
+    request['routes'][0].update(change)
+    calls = []
+    with pytest.raises(AuditError, match='invalid audit request'):
+        audit(request, transport_factory=lambda *a, **k: calls.append(True))
+    assert calls == []
+
+
+def test_standard_route_explicit_get_consent_is_accepted():
+    request = {"level": "standard", "authorized": True, "routes": [{"url": "https://example.invalid/", "safe_use_confirmed": True, "methods": ["GET"], "cors_get": False, "parameters": []}]}
+    result = audit(request, transport_factory=Fake)
+    assert result["requests_used"] == 1
+    assert result["complete"] is False

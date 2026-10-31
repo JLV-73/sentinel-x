@@ -177,6 +177,29 @@ def test_preapproved_redirect_resolves_once_per_hop_and_counts_both():
     assert transport.count == resolver.call_count == 2
     assert b'GET /two HTTP/1.1\r\n' in second.sent[0]
 
+def test_observe_reports_redirect_without_exposing_route_or_headers():
+    first = FakeSocket(b'HTTP/1.1 302 Found\r\nLocation: /two\r\nContent-Length: 0\r\n\r\n')
+    second = FakeSocket(b'HTTP/1.1 200 OK\r\nX-Private: secret\r\nSet-Cookie: b=secret\r\nContent-Length: 0\r\n\r\n')
+    resolver = Mock(return_value=[answer()])
+    t = SafeTransport(validate_scope(URL, ['http://example.com/two']), resolver=resolver,
+                      socket_factory=Mock(side_effect=[first, second]))
+    result = t.observe('GET', URL)
+    assert result['redirected'] is True and result['outcome'] == 'ok'
+    assert t.count == resolver.call_count == 2
+    assert 'secret' not in repr(result) and 'example.com' not in repr(result) and '/two' not in repr(result)
+    direct, _, _, _ = build()
+    assert 'redirected' not in direct.observe('GET', URL)
+
+
+def test_observe_redirect_budget_stops_before_second_dns():
+    first = FakeSocket(b'HTTP/1.1 302 Found\r\nLocation: /two\r\nContent-Length: 0\r\n\r\n')
+    resolver = Mock(return_value=[answer()])
+    t = SafeTransport(validate_scope(URL, ['http://example.com/two']), resolver=resolver,
+                      socket_factory=Mock(return_value=first), max_requests=1)
+    assert t.observe('GET', URL) == {'outcome': 'error'}
+    assert t.blocked and t.count == resolver.call_count == len(first.sent) == 1
+
+
 def test_concurrent_requests_cannot_exceed_audit_budget():
     from concurrent.futures import ThreadPoolExecutor
     from threading import Event, Lock
@@ -596,4 +619,40 @@ def test_scoped_approval_normalized_collision_is_rejected_before_dns():
     with pytest.raises(TransportError):
         SafeTransport(validate_scope(URL, []), resolver=resolver,
                       scoped_probes=[(URL, 'a.b', 'reflection'), (URL, 'a_b', 'witness')])
+    resolver.assert_not_called()
+
+
+def test_legacy_internal_head_remains_available():
+    transport, sock, resolver, _ = build()
+    assert transport.request('HEAD', URL).status == 200
+    assert sock.sent[0].startswith(b'HEAD / HTTP/1.1\r\n')
+    assert resolver.call_count == 1
+
+
+def test_restricted_policy_refuses_origin_header_before_dns():
+    resolver = Mock(return_value=[answer()])
+    t = SafeTransport(validate_scope(URL, []), resolver=resolver, socket_factory=Mock(),
+                      allowed_methods=frozenset({('http://example.com:80/', 'GET')}))
+    with pytest.raises(TransportError):
+        t.request('GET', URL, {'Origin': 'https://fortress-origin.invalid'})
+    resolver.assert_not_called()
+
+
+def test_restricted_redirect_must_be_individually_authorized_before_dns():
+    first = FakeSocket(b'HTTP/1.1 302 Found\r\nLocation: /two\r\nContent-Length: 0\r\n\r\n')
+    resolver = Mock(return_value=[answer()])
+    t = SafeTransport(validate_scope(URL, ['http://example.com/two']), resolver=resolver,
+                      socket_factory=Mock(return_value=first),
+                      allowed_methods=frozenset({('http://example.com:80/', 'GET')}))
+    with pytest.raises(TransportError):
+        t.request('GET', URL)
+    assert resolver.call_count == 1 and len(first.sent) == 1
+
+
+def test_standard_transport_rejects_non_get_before_dns():
+    resolver = Mock(return_value=[answer()])
+    t = SafeTransport(validate_scope(URL, []), resolver=resolver, socket_factory=Mock(),
+                      allowed_methods=frozenset({('http://example.com:80/', 'GET')}))
+    with pytest.raises(TransportError):
+        t.request("HEAD", URL)
     resolver.assert_not_called()

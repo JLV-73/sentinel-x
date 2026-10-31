@@ -15,6 +15,67 @@ class TransportError(ValueError):
     """A request was refused or did not complete safely."""
 
 
+class _StrictHeaderStream:
+    """Validate exactly the bytes HTTPResponse consumes, before it derives facts."""
+    def __init__(self, stream):
+        self.stream = stream
+        self.checking = True
+        self.expect_status = True
+        self.complete = False
+        self.total = 0
+        self.content_length = False
+
+
+    def readline(self, limit=-1):
+        if not self.checking:
+            return self.stream.readline(limit)
+        # http.client passes its own bounded line limit; never permit unbounded reads.
+        if limit < 0 or limit > 65537:
+            limit = 65537
+        line = self.stream.readline(limit)
+        self.total += len(line)
+        if (self.total > 131072 or not line.endswith(b'\r\n') or
+            b'\r' in line[:-2] or b'\n' in line[:-2]):
+            raise TransportError('invalid header framing')
+        content = line[:-2]
+        if self.expect_status:
+            if not re.fullmatch(rb'HTTP/1\.[01] [0-9]{3}(?: [\x20-\x7e\x80-\xff\t]*)?', content):
+                raise TransportError('invalid status line')
+            self.expect_status = False
+            self.complete = False
+            self.content_length = False
+        elif not content:
+            self.complete = True
+            self.expect_status = True  # http.client may consume a 100 response first
+        else:
+            name, separator, value = content.partition(b':')
+            if (not separator or not re.fullmatch(rb"[!#$%&'*+.^_`|~0-9A-Za-z-]+", name) or
+                any(c < 32 and c != 9 or c == 127 for c in value)):
+                raise TransportError('invalid header field')
+            name = name.lower()
+            if name == b'content-length':
+                if self.content_length or not re.fullmatch(rb'[0-9]+', value.strip(b' \t')):
+                    raise TransportError('invalid content length')
+                self.content_length = True
+            elif name == b'transfer-encoding':
+                # http.client's permissive chunk framing is not validated here.
+                raise TransportError('transfer encoding unsupported')
+        return line
+
+    def __getattr__(self, name):
+        return getattr(self.stream, name)
+
+
+class _HeaderCheckedSocket:
+    def __init__(self, sock):
+        self.sock = sock
+        self.stream = None
+
+    def makefile(self, mode):
+        self.stream = _StrictHeaderStream(self.sock.makefile(mode))
+        return self.stream
+
+
 @dataclass(frozen=True)
 class Scope:
     origin: tuple[str, str, int]
@@ -35,6 +96,45 @@ class Response:
     baseline_marker: bool = False
     baseline_first: bool = False
     baseline_second: bool = False
+    headers_complete: bool = True
+
+
+_SECURITY_HEADERS = {
+    'hsts': 'strict-transport-security',
+    'csp': 'content-security-policy',
+    'x_content_type_options': 'x-content-type-options',
+    'referrer_policy': 'referrer-policy',
+    'permissions_policy': 'permissions-policy',
+}
+
+
+def _header_facts(headers, complete):
+    """Classify a deliberately narrow syntax subset, never policy effectiveness."""
+    result = {}
+    for name, header in _SECURITY_HEADERS.items():
+        values = [v for k, v in headers if k.lower() == header]
+        if not complete or len(values) > 1:
+            result[name] = 'unknown'
+        elif not values:
+            result[name] = 'absent'
+        else:
+            value = values[0].strip(' \t')
+            if not value:
+                result[name] = 'invalid'
+                continue
+            if len(value) > 4096 or not value.isascii() or any(ord(c) < 32 or ord(c) == 127 for c in value):
+                result[name] = 'unknown'
+                continue
+            v = value.lower()
+            recognized = (
+                (name == 'hsts' and re.fullmatch(r'max-age=[0-9]{1,10}(?:;\s*includesubdomains)?(?:;\s*preload)?', v)) or
+                (name == 'csp' and v == "default-src 'none'") or
+                (name == 'x_content_type_options' and v == 'nosniff') or
+                (name == 'referrer_policy' and v in ('no-referrer', 'no-referrer-when-downgrade', 'origin', 'origin-when-cross-origin', 'same-origin', 'strict-origin', 'strict-origin-when-cross-origin', 'unsafe-url')) or
+                (name == 'permissions_policy' and v in ('camera=()', 'microphone=()', 'geolocation=()'))
+            )
+            result[name] = 'present' if recognized else 'unknown'
+    return result
 
 
 def _cookie_facts(headers):
@@ -186,10 +286,19 @@ class SafeTransport:
     Deadlines are cooperative; a blocking resolver or slow-drip buffered read can exceed them.
     """
     def __init__(self, scope: Scope, *, resolver=socket.getaddrinfo, socket_factory=socket.socket,
-                 tls_context=None, timeout=5.0, deadline=45.0, max_bytes=262144, max_requests=30, approved_probes=None, scoped_probes=None, cors_routes=None):
+                 tls_context=None, timeout=5.0, deadline=45.0, max_bytes=262144, max_requests=30, approved_probes=None, scoped_probes=None, cors_routes=None, allowed_methods=None):
         if not isinstance(scope, Scope) or not (0 < timeout <= 10 and 0 < deadline <= 45 and 0 < max_bytes <= 262144 and 0 < max_requests <= 30):
             raise TransportError('invalid transport configuration')
         self.scope, self.resolver, self.socket_factory = scope, resolver, socket_factory
+        # Trusted service supplies an immutable exact route/method policy. Legacy
+        # internal callers omit it; that compatibility is not API authorization.
+        if allowed_methods is not None:
+            if (type(allowed_methods) is not frozenset or not allowed_methods or
+                any(type(pair) is not tuple or len(pair) != 2 or
+                    pair[0] not in scope.routes or pair[1] != 'GET' for pair in allowed_methods) or
+                approved_probes is not None or scoped_probes is not None or cors_routes is not None):
+                raise TransportError('invalid method policy')
+        self._allowed_methods = allowed_methods
         self.tls_context = tls_context
         self.timeout, self.deadline, self.max_bytes, self.max_requests = timeout, deadline, max_bytes, max_requests
         self.started = time.monotonic()
@@ -249,11 +358,29 @@ class SafeTransport:
 
     @_halt_on_uncertainty
     def observe(self, method: str, url: str):
-        """Return bounded derived facts only; request() is internal and unsafe to expose."""
+        return self._observe(method, url, False)
+
+    @_halt_on_uncertainty
+    def observe_headers(self, method: str, url: str):
+        """Return bounded derived facts; optional header enums do not assert protection.
+
+        If the result omits security_headers (including errors), treat all as unknown.
+        request() is internal and unsafe to expose.
+        """
+        return self._observe(method, url, True)
+
+    def _observe(self, method, url, include_security_headers):
         try:
+            before = self.count
             response = self.request(method, url)
             facts = dict(zip(('count', 'missing_secure', 'missing_httponly', 'missing_samesite', 'indeterminate'), response.cookies))
-            return {'outcome': 'blocked' if response.blocked else 'indeterminate' if response.indeterminate else 'ok', 'cookies': facts}
+            result = {'outcome': 'blocked' if response.blocked else 'indeterminate' if response.indeterminate else 'ok', 'cookies': facts}
+            if include_security_headers:
+                result['security_headers'] = _header_facts(response.headers, not response.blocked and not response.indeterminate and response.headers_complete and self.count - before == 1)
+            # Preserve the existing direct-response observer contract.
+            if self.count - before > 1:
+                result['redirected'] = True
+            return result
         except Exception:
             pass
         return {'outcome': 'error'}
@@ -397,6 +524,8 @@ class SafeTransport:
             raise TransportError('transport halted')
         if method not in ('GET', 'HEAD', 'OPTIONS'):
             raise TransportError('invalid method')
+        if self._allowed_methods is not None and (probe is not None or headers):
+            raise TransportError('advanced observation disabled')
         supplied = headers or {}
         if not isinstance(supplied, dict):
             raise TransportError('invalid headers')
@@ -412,6 +541,8 @@ class SafeTransport:
             origin, canonical, path = _parse(current)
             if origin != self.scope.origin or canonical not in self.scope.routes:
                 raise TransportError('outside scope')
+            if self._allowed_methods is not None and (canonical, method) not in self._allowed_methods:
+                raise TransportError('method not authorized for route')
             if probe is not None:
                 path = probe[0]
             if self.count >= self.max_requests:
@@ -456,8 +587,12 @@ class SafeTransport:
                     lines.extend(f'{k}: {v}' for k, v in clean.items())
                     sock.sendall(('\r\n'.join(lines) + '\r\n\r\n').encode('ascii'))
                     sock.settimeout(self._remaining())
-                    response = http.client.HTTPResponse(sock, method=method)
+                    checked_sock = _HeaderCheckedSocket(sock)
+                    response = http.client.HTTPResponse(checked_sock, method=method)
                     response.begin()
+                    if not checked_sock.stream.complete:
+                        raise TransportError('incomplete headers')
+                    checked_sock.stream.checking = False
                     self._remaining()
                     raw_headers = response.getheaders()
                     if response.status in (401, 403, 429) or any(
@@ -513,7 +648,8 @@ class SafeTransport:
                     result = Response(status, safe_headers, bytes(body), canonical, blocked, _cookie_facts(raw_headers), reflected, witness_match,
                                       baseline_marker=b'FORTRESSINERT2026' in baseline_data,
                                       baseline_first=b'https://example.invalid/' in baseline_data,
-                                      baseline_second=b'https://second.invalid/' in baseline_data)
+                                      baseline_second=b'https://second.invalid/' in baseline_data,
+                                      headers_complete=not response.msg.defects)
                 finally:
                     sock.close()
             except TransportError:

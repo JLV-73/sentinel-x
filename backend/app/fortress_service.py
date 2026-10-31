@@ -24,7 +24,7 @@ class AuditError(ValueError):
 
 
 _AUDIT_LOCK = threading.Lock()
-_FIELDS = frozenset(('target', 'additional_urls', 'level', 'authorized', 'parameters'))
+_FIELDS = frozenset(('level', 'authorized', 'routes'))
 _NAME = re.compile(r'[A-Za-z][A-Za-z0-9_.-]{0,63}\Z')
 _SENSITIVE = re.compile(r'pass|token|secret|auth|session|cookie|credential|api.?key', re.I)
 
@@ -74,43 +74,33 @@ def _validate(payload, language):
             raise ValueError()
         if language not in ('en', 'fr') or type(language) is not str:
             raise ValueError()
-        if payload['level'] not in ('standard', 'deep') or type(payload['level']) is not str:
+        if type(payload['level']) is not str or payload['level'] != 'standard':
             raise ValueError()
-        routes = [payload['target']]
-        extras = payload['additional_urls']
-        params = payload['parameters']
-        if type(extras) is not list or len(extras) > 3 or type(params) is not list or len(params) > 16:
+        entries = payload['routes']
+        if type(entries) is not list or not 1 <= len(entries) <= 4:
             raise ValueError()
-        routes.extend(extras)
-        if any(type(url) is not str or '?' in url for url in routes):
-            raise ValueError()
-        scope = validate_scope(routes[0], extras)
+        routes = []
+        for entry in entries:
+            if type(entry) is not dict or set(entry) != {'url', 'safe_use_confirmed', 'methods', 'cors_get', 'parameters'}:
+                raise ValueError()
+            if (type(entry['url']) is not str or '?' in entry['url'] or
+                entry['safe_use_confirmed'] is not True or type(entry['methods']) is not list or
+                entry['methods'] != ['GET'] or entry['cors_get'] is not False or
+                type(entry['parameters']) is not list or entry['parameters'] != []):
+                raise ValueError()
+            routes.append(entry['url'])
+        scope = validate_scope(routes[0], routes[1:])
         canonical = [_parse(url)[1] for url in routes]
         if len(set(canonical)) != len(canonical):
             raise ValueError()
-        if payload['level'] == 'standard' and params:
-            raise ValueError()
-        seen = set()
-        for p in params:
-            if type(p) is not dict or set(p) != {'url', 'name', 'kind'}:
-                raise ValueError()
-            if type(p['url']) is not str or p['url'] not in routes:
-                raise ValueError()
-            if type(p['name']) is not str or not _NAME.fullmatch(p['name']) or _SENSITIVE.search(p['name']):
-                raise ValueError()
-            if type(p['kind']) is not str or p['kind'] not in ('reflection', 'redirect'):
-                raise ValueError()
-            key = (_parse(p['url'])[1], p['name'].lower().replace('.', '_'))
-            if key in seen:
-                raise ValueError()
-            seen.add(key)
         return scope, tuple(routes), payload['level']
     except Exception:
         raise AuditError('invalid audit request') from None
 
 
 def _cookie_fact(observation):
-    if type(observation) is not dict or observation.get('outcome') != 'ok':
+    if (type(observation) is not dict or observation.get('outcome') != 'ok' or
+        observation.get('redirected', False) is not False):
         return {}
     cookies = observation.get('cookies')
     keys = ('count', 'missing_secure', 'missing_httponly', 'missing_samesite', 'indeterminate')
@@ -140,7 +130,8 @@ def _audit(payload, *, language='en'):
         used = 0
         stopped = False
         try:
-            transport = _SafeTransport(scope, max_requests=30)
+            transport = _SafeTransport(scope, max_requests=30,
+                                       allowed_methods=frozenset((_parse(route)[1], 'GET') for route in routes))
         except Exception:
             transport = None
             stopped = True
@@ -151,15 +142,22 @@ def _audit(payload, *, language='en'):
                     before = transport.count
                     if type(before) is not int or before != used or not 0 <= before < 30 or transport.blocked is not False:
                         raise ValueError()
-                    observation = transport.observe('GET', route)
+                    observation = transport.observe_headers('GET', route)
                     after = transport.count
                     if type(after) is not int or not before < after <= 30:
                         raise ValueError()
                     used = after
                     if type(observation) is not dict or observation.get('outcome') != 'ok' or transport.blocked is not False:
                         stopped = True
-                    else:
+                    elif after - before == 1:
                         facts = _cookie_fact(observation)
+                        # The observer emits 'absent' only for complete direct headers;
+                        # recognized presence is not evidence of effective protection.
+                        headers = observation.get('security_headers')
+                        if observation.get('redirected', False) is False and type(headers) is dict:
+                            for name in ('hsts', 'csp', 'x_content_type_options', 'referrer_policy', 'permissions_policy'):
+                                if type(headers.get(name)) is str and headers[name] == 'absent':
+                                    facts[name] = {'complete': True, 'observed': False}
                 except Exception:
                     # No exception text, raw observation, or target data may escape.
                     try:

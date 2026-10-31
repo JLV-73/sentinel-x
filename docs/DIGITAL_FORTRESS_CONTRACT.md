@@ -1,8 +1,73 @@
-# DIGITAL FORTRESS — P2 safety and audit contract (draft implementation)
+# DIGITAL FORTRESS — P2 safety and audit contract (mandate and candidate)
 
-P2 development only, base v0.1.1; no P2 merge, tag or release. Audit of any
-external site needs a separate target-specific owner authorization. No site is
-implicitly authorized by installation or by this project GO.
+**Experimental DRAFT, not a release.** P2 is development only, based on v0.1.1;
+there is no authorized P2 merge, tag or release. The normal audit API is disabled
+throughout this draft and returns HTTP 503; this branch does not perform real audits.
+Any future audit requires separate explicit legal authorization from the target owner
+or another authorized party, including the specific target, routes and methods. No
+site or route is implicitly authorized by installation or this project GO.
+
+## Current candidate — narrower than the original mandate
+
+JLV has given GO to pursue the candidate, not to activate it or audit a target.
+The normal HTTP audit endpoint remains disabled (503). The frontend and experimental
+local standard-only prototype service use only this candidate DTO, not the broader
+mandate below; it is not an operational audit API:
+
+```ts
+{level: 'standard', authorized: true, routes: [{url: string,
+  safe_use_confirmed: true, methods: ['GET'], cors_get: false, parameters: []}]}
+```
+
+There are one to four explicitly approved routes, all on the same exact origin,
+with query-free URLs; each route's confirmation covers safe use of that route for
+GET only. Requests are transport-bound GETs, not HEAD or OPTIONS. The candidate
+service uses a Windows logon-session mutex, not a machine-wide or cross-session
+lock. Deadlines are cooperative, including around blocking DNS, not hard wall-clock
+guarantees. Candidate output
+is incomplete and does not certify data safety or overall security. Any observations
+and safety conclusions are limited to the authorized routes and checks actually
+performed. Deep mode, CORS and parameter probes, and GHSA matching are not integrated
+or operational. Experimental modules and lab results are not production validation.
+The sandbox-only owned-loopback lab uses a real synthetic fixture with a simulated
+public peer; it is not evidence of an actual public peer or a production end-to-end test.
+
+## Local use on Windows
+
+These steps assume this checkout and its project dependencies already exist; no
+installation or download is performed. In PowerShell, replace the placeholder with
+this checkout's local directory:
+
+```powershell
+Set-Location '<path-to-this-checkout>'
+.\START_SENTINEL.cmd
+```
+
+Keep that window open and use the cockpit address printed by the launcher. This is
+the normal SENTINEL application; its P2 audit endpoint still returns 503. Stop it
+with Ctrl+C in its window. Do not stop unrelated processes if a required port is busy.
+
+The laboratory is **optional and separate**, not a feature activated in the normal
+cockpit. In a second PowerShell window, set the same location and run:
+
+```powershell
+Set-Location '<path-to-this-checkout>'
+.\START_FORTRESS_LAB.cmd
+```
+
+Open the loopback URL printed in that window manually and use the observation button.
+The lab expires after about 60 seconds; Ctrl+Break was tested to stop it earlier.
+Ctrl+C shutdown has not been verified. It
+contacts only its owned local synthetic fixture; DNS and the public peer are simulated.
+The displayed counts are synthetic demonstration results, not a real-site audit or
+production-security proof. The lab page is not a full audit report. Any report examples
+or exports derived from synthetic test inputs must likewise be labeled synthetic and
+incomplete, not represented as real audit findings.
+
+## Original mandate and future requirements — not current functionality
+
+The following sections preserve the broader user mandate and design requirements.
+They do not describe an enabled endpoint or promise that any planned feature works.
 
 ## Explicit scope, resource limits and communication
 
