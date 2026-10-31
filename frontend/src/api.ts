@@ -16,6 +16,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return body as T;
 }
 export const api = {
+  fortress: (payload:import('./types').FortressRequest,signal?:AbortSignal) => request<import('./types').FortressResult>('/fortress/audit',{method:'POST',headers:{'Content-Type':'application/json','X-Sentinel-Request':'sync'},body:JSON.stringify(payload),signal}),
   ghsa: (id:string,signal?:AbortSignal) => request<GhsaResult>(`/intelligence/ghsa/${encodeURIComponent(id)}`,{signal}),
   fetchGhsa: (id:string,refresh:boolean,signal?:AbortSignal) => request<GhsaResult>(`/intelligence/ghsa/${encodeURIComponent(id)}?refresh=${refresh}`,{method:'POST',headers:{'X-Sentinel-Request':'sync'},signal}),
   triage: (filters:TriageQuery,signal?:AbortSignal) => {
