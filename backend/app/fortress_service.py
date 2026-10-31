@@ -1,8 +1,9 @@
 """Internal-only, incomplete prototype. Production activation is prohibited.
 
 The HTTP endpoint remains disabled and must never call this module. Deep mode is
-rejected before transport/DNS. The Windows mutex covers only one logon session,
-not other sessions, machines or deployments; it is not a global safety proof.
+rejected before transport/DNS. The Windows global mutex is fail-closed on access
+failure, but its ACL and cross-session behavior are not independently verified.
+It does not coordinate other machines or deployments.
 No Python naming convention is a security boundary against trusted in-process code.
 """
 from datetime import datetime, timezone
@@ -45,10 +46,10 @@ def _mutex_api():
 
 
 def _acquire_process_mutex():
-    # Local namespace is only one Windows session, NOT deployment-wide.
+    # No fallback if the global namespace cannot be opened or acquired.
     try:
         kernel = _mutex_api()
-        handle = kernel.CreateMutexW(None, False, r'Local\SentinelX-P2-DigitalFortress-Audit')
+        handle = kernel.CreateMutexW(None, False, r'Global\SentinelX-P2-DigitalFortress-Audit')
         if not handle:
             raise AuditError('audit unavailable')
         result = kernel.WaitForSingleObject(handle, 0)
@@ -110,13 +111,18 @@ def _cookie_fact(observation):
     if not 1 <= count <= 10000 or cookies['indeterminate'] != 0:
         return {}
     values = [cookies[k] for k in keys[1:4]]
-    if any(v < 0 or v > count for v in values) or not any(values):
+    if any(v < 0 or v > count for v in values):
         return {}
-    return {'cookie_attributes': {'complete': True, 'observed': True, 'cookie_count': count}}
+    return {'cookie_attributes': {'complete': True, 'observed': any(values), 'cookie_count': count}}
 
 
 def _audit(payload, *, language='en'):
     """Internal prototype only; not authorized for HTTP or production use."""
+    return _audit_with_factory(payload, language=language, factory=_SafeTransport)
+
+
+def _audit_with_factory(payload, *, factory, language='en'):
+    """Trusted in-process lab seam; factory must never come from a request."""
     scope, routes, level = _validate(payload, language)
     if level == 'deep':
         raise AuditError('deep mode unavailable') from None
@@ -127,51 +133,83 @@ def _audit(payload, *, language='en'):
         mutex = _acquire_process_mutex()
         started = datetime.now(timezone.utc)
         findings = []
+        route_execution = []
         used = 0
         stopped = False
         try:
-            transport = _SafeTransport(scope, max_requests=30,
+            transport = factory(scope, max_requests=30,
                                        allowed_methods=frozenset((_parse(route)[1], 'GET') for route in routes))
         except Exception:
             transport = None
             stopped = True
-        for route in routes:
+        for route_index, route in enumerate(routes, 1):
             facts = {}
+            state = 'not_started'
             if not stopped:
                 try:
                     before = transport.count
                     if type(before) is not int or before != used or not 0 <= before < 30 or transport.blocked is not False:
                         raise ValueError()
+                    state = 'indeterminate'
                     observation = transport.observe_headers('GET', route)
                     after = transport.count
                     if type(after) is not int or not before < after <= 30:
                         raise ValueError()
                     used = after
+                    if transport.blocked is True:
+                        state = 'blocked'
+                    elif type(observation) is dict and observation.get('redirected') is True:
+                        state = 'redirected'
+                    elif (type(observation) is dict and observation.get('outcome') == 'ok' and
+                          transport.blocked is False and after - before == 1 and
+                          observation.get('redirected', False) is False):
+                        state = 'completed'
                     if type(observation) is not dict or observation.get('outcome') != 'ok' or transport.blocked is not False:
                         stopped = True
                     elif after - before == 1:
                         facts = _cookie_fact(observation)
+                        tls = observation.get('tls')
+                        if (scope.origin[0] == 'https' and observation.get('redirected', False) is False and
+                            type(tls) is dict and set(tls) == {'certificate', 'protocol'} and
+                            tls['certificate'] == 'verified' and tls['protocol'] in ('TLSv1.2', 'TLSv1.3')):
+                            facts['https_tls'] = {'complete': True, 'observed': True}
                         # The observer emits 'absent' only for complete direct headers;
                         # recognized presence is not evidence of effective protection.
                         headers = observation.get('security_headers')
                         if observation.get('redirected', False) is False and type(headers) is dict:
                             for name in ('hsts', 'csp', 'x_content_type_options', 'referrer_policy', 'permissions_policy'):
-                                if type(headers.get(name)) is str and headers[name] == 'absent':
+                                if (name != 'hsts' or scope.origin[0] == 'https') and type(headers.get(name)) is str and headers[name] == 'absent':
                                     facts[name] = {'complete': True, 'observed': False}
                 except Exception:
                     # No exception text, raw observation, or target data may escape.
                     try:
+                        if transport.blocked is True:
+                            state = 'blocked'
                         count = transport.count
                         if type(count) is int and used <= count <= 30:
                             used = count
                     except Exception:
                         pass
                     stopped = True
-            findings.extend(evaluate_findings(facts, route='[redacted route]', method='GET', date=started.date().isoformat(), language=language))
+            route_execution.append({'route_index': route_index, 'state': state})
+            route_findings = evaluate_findings(facts, route='[redacted route]', method='GET', date=started.date().isoformat(), language=language)
+            for finding in route_findings:
+                finding['route_index'] = route_index
+                if finding['id'] == 'cookie_attributes' and finding['status'] == 'conformant':
+                    finding['evidence'] = ('Attributs recommandés observés sur les cookies examinés.' if language == 'fr' else
+                                           'Observed recommended attributes on examined cookies.')
+                    finding['reason'] = ('Observation limitée ; pertinence indéterminée, sans certification.' if language == 'fr' else
+                                         'Limited observation; applicability is indeterminate, not a certification.')
+                finding['evidence_code'] = ('cookie_attributes_present' if finding['id'] == 'cookie_attributes' and finding['status'] == 'conformant'
+                                            else 'tls_verified' if finding['id'] == 'https_tls' and finding['status'] == 'conformant'
+                                            else 'cookie_attributes_missing' if finding['id'] == 'cookie_attributes' and finding['status'] == 'attention'
+                                            else 'header_absent' if finding['id'] in facts and finding['status'] == 'attention'
+                                            else 'indeterminate')
+            findings.extend(route_findings)
         finished = datetime.now(timezone.utc)
         return {'audit_id': str(uuid4()), 'mode': level, 'started_at': started.isoformat(),
                 'finished_at': finished.isoformat(), 'scope': {'origin': '[redacted]', 'paths': ['[redacted route]'] * len(routes)},
-                'requests_used': used, 'complete': False, 'findings': findings,
+                'requests_used': used, 'complete': False, 'findings': findings, 'route_execution': route_execution,
                 'limitations': (['Prototype incomplet : contrôles CORS et sondes non effectués ; aucune évaluation des avis.'] if language == 'fr' else
                                 ['Incomplete prototype: CORS and probes not performed; advisory assessment unavailable.'])}
     finally:

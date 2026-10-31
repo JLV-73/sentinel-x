@@ -278,6 +278,34 @@ def test_witness_redirect_is_derived_without_following():
     assert 'example.invalid' not in repr(result)
 
 
+@pytest.mark.parametrize('byte', range(256))
+def test_cookie_octet_strict_single_byte(byte):
+    from app.fortress_transport import _cookie_facts
+    allowed = byte == 0x21 or 0x23 <= byte <= 0x2b or 0x2d <= byte <= 0x3a or 0x3c <= byte <= 0x5b or 0x5d <= byte <= 0x7e
+    value = chr(byte)
+    facts = _cookie_facts([('Set-Cookie', 'a=' + value + '; Secure; HttpOnly; SameSite=Lax')])
+    assert (facts[-1] == 0) is allowed
+
+
+@pytest.mark.parametrize('cookie', [
+    'a=x; Secure; HttpOnly; SameSite=Lax; Path=/',
+    '__Host-a=x; Secure; HttpOnly; SameSite=Lax',
+    '__Secure-a=x; Secure; HttpOnly; SameSite=Lax',
+    'a=x; Secure; HttpOnly; SameSite=Lax; Expires=Wed, 09 Jun 2027 10:18:14 GMT',
+    'a=x; Secure; HttpOnly; SameSite=Lax; secure',
+    'a=x; Secure=1; HttpOnly; SameSite=Lax',
+    'a=x; Secure; HttpOnly; SameSite=invalid',
+])
+def test_cookie_conservative_unknowns(cookie):
+    from app.fortress_transport import _cookie_facts
+    assert _cookie_facts([('Set-Cookie', cookie)])[-1] == 1
+
+
+def test_cookie_samesite_none_requires_secure_for_positive():
+    from app.fortress_transport import _cookie_facts
+    assert _cookie_facts([('Set-Cookie', 'a=x; HttpOnly; SameSite=None')]) == (1, 1, 0, 0, 0)
+
+
 def test_malformed_cookie_attributes_are_indeterminate():
     payload = (b'HTTP/1.1 200 OK\r\nSet-Cookie: private-name=private-value; SameSite=bogus\r\n'
                b'Content-Length: 0\r\n\r\n')

@@ -83,9 +83,8 @@ def lab(monkeypatch):
                                   timeout=2, deadline=8, **kwargs)
         transports.append(transport)
         return transport
-    monkeypatch.setattr(service, '_SafeTransport', factory)
     try:
-        yield owned, resolutions, adapters, transports
+        yield owned, resolutions, adapters, transports, factory
     finally:
         owned.close()
 
@@ -99,7 +98,7 @@ def assert_clean(result, paths):
 
 
 def assert_connections(lab, n):
-    owned, resolutions, adapters, transports = lab
+    owned, resolutions, adapters, transports, _ = lab
     assert len(owned.requests) == len(owned.peers) == len(resolutions) == len(adapters) == n
     assert all(a.actual_peer == owned.address and a.actual_peer[0] == '127.0.0.1' for a in adapters)
     assert all(a.getpeername() == (SIMULATED_IP, 80) for a in adapters)
@@ -111,9 +110,17 @@ def assert_connections(lab, n):
     return transports
 
 
+def test_scoped_factory_is_explicit_and_not_global(lab):
+    original = service._SafeTransport
+    result = service._audit_with_factory(payload('/missing-marker'), factory=lab[4])
+    assert service._SafeTransport is original
+    assert result['requests_used'] == 1
+    assert assert_connections(lab, 1)[0].count == 1
+
+
 def test_real_response_absence_and_nonprotective_presence(lab):
     paths = ('/headers-marker',)
-    result = service._audit(payload(*paths))
+    result = service._audit_with_factory(payload(*paths), factory=lab[4])
     transports = assert_connections(lab, 1)
     assert transports[0].count == result['requests_used'] == 1
     findings = {f['id']: f for f in result['findings']}
@@ -126,18 +133,18 @@ def test_real_response_absence_and_nonprotective_presence(lab):
 
 def test_real_response_absent_hsts(lab):
     paths = ('/missing-marker',)
-    result = service._audit(payload(*paths))
+    result = service._audit_with_factory(payload(*paths), factory=lab[4])
     assert assert_connections(lab, 1)[0].count == result['requests_used'] == 1
-    assert next(f for f in result['findings'] if f['id'] == 'hsts')['status'] == 'attention'
+    assert next(f for f in result['findings'] if f['id'] == 'hsts')['status'] == 'indeterminate'
     assert_clean(result, paths)
 
 
 def test_service_real_transport_cookie_findings(lab):
     paths = ('/missing-marker', '/protected-marker')
-    result = service._audit(payload(*paths))
+    result = service._audit_with_factory(payload(*paths), factory=lab[4])
     transports = assert_connections(lab, 2)
     assert len(transports) == 1 and transports[0].count == result['requests_used'] == 2
-    assert [f['status'] for f in result['findings'] if f['id'] == 'cookie_attributes'] == ['attention', 'indeterminate']
+    assert [f['status'] for f in result['findings'] if f['id'] == 'cookie_attributes'] == ['attention', 'conformant']
     assert all(f['status'] == 'indeterminate' for f in result['findings'] if f['id'] in ('cors', 'redirect', 'reflection', 'version'))
     assert [r.split(b'\r\n', 1)[0] for r in lab[0].requests] == [b'GET /missing-marker HTTP/1.1', b'GET /protected-marker HTTP/1.1']
     assert_clean(result, paths)
@@ -147,18 +154,18 @@ def test_consent_and_private_scope_denied_before_any_socket(lab):
     request = payload('/missing-marker')
     request['authorized'] = 1
     with pytest.raises(service.AuditError):
-        service._audit(request)
+        service._audit_with_factory(request, factory=lab[4])
     request['authorized'] = True
     request['routes'][0]['url'] = 'http://127.0.0.1/'
     with pytest.raises(service.AuditError):
-        service._audit(request)
+        service._audit_with_factory(request, factory=lab[4])
     assert assert_connections(lab, 0) == []
 
 
 @pytest.mark.parametrize('first', ['/stop-marker', '/error-marker', '/partial-marker'])
 def test_stop_or_invalid_response_never_claims_findings_or_sends_followup(lab, first):
     paths = (first, '/missing-marker')
-    result = service._audit(payload(*paths))
+    result = service._audit_with_factory(payload(*paths), factory=lab[4])
     transports = assert_connections(lab, 1)
     assert transports[0].count == result['requests_used'] == 1
     assert transports[0].blocked is True

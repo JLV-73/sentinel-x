@@ -15,10 +15,50 @@ class TransportError(ValueError):
     """A request was refused or did not complete safely."""
 
 
+# A timed-out OS resolver cannot be cancelled. At most one may remain in flight
+# per process; while it is stuck, all other resolutions fail closed immediately.
+_dns_capacity = threading.BoundedSemaphore(1)
+
+
+def _resolve_bounded(resolver, host, port, remaining):
+    dns_end = time.monotonic() + remaining()
+    if not _dns_capacity.acquire(blocking=False):
+        raise TransportError('DNS capacity exhausted')
+    done = threading.Event()
+    cancelled = threading.Event()
+    result = []
+
+    def resolve_only():
+        try:
+            if cancelled.is_set() or time.monotonic() >= dns_end:
+                return
+            result.append((True, resolver(host, port, type=socket.SOCK_STREAM)))
+        except BaseException:
+            result.append((False, None))
+        finally:
+            _dns_capacity.release()
+            done.set()
+
+    try:
+        threading.Thread(target=resolve_only, daemon=True).start()
+    except BaseException:
+        _dns_capacity.release()
+        raise
+    if not done.wait(max(0, dns_end - time.monotonic())):
+        cancelled.set()
+        raise TransportError('DNS deadline exceeded')
+    remaining()
+    if not result or not result[0][0]:
+        raise TransportError('DNS failed')
+    return result[0][1]
+
+
 class _StrictHeaderStream:
     """Validate exactly the bytes HTTPResponse consumes, before it derives facts."""
-    def __init__(self, stream):
+    def __init__(self, stream, sock, remaining):
         self.stream = stream
+        self.sock = sock
+        self.remaining = remaining
         self.checking = True
         self.expect_status = True
         self.complete = False
@@ -32,7 +72,17 @@ class _StrictHeaderStream:
         # http.client passes its own bounded line limit; never permit unbounded reads.
         if limit < 0 or limit > 65537:
             limit = 65537
-        line = self.stream.readline(limit)
+        line = bytearray()
+        while len(line) < limit:
+            self.sock.settimeout(self.remaining())
+            byte = self.stream.read1(1)
+            self.remaining()
+            if not byte:
+                break
+            line.extend(byte)
+            if byte == b'\n':
+                break
+        line = bytes(line)
         self.total += len(line)
         if (self.total > 131072 or not line.endswith(b'\r\n') or
             b'\r' in line[:-2] or b'\n' in line[:-2]):
@@ -67,12 +117,13 @@ class _StrictHeaderStream:
 
 
 class _HeaderCheckedSocket:
-    def __init__(self, sock):
+    def __init__(self, sock, remaining):
         self.sock = sock
+        self.remaining = remaining
         self.stream = None
 
     def makefile(self, mode):
-        self.stream = _StrictHeaderStream(self.sock.makefile(mode))
+        self.stream = _StrictHeaderStream(self.sock.makefile(mode), self.sock, self.remaining)
         return self.stream
 
 
@@ -97,6 +148,7 @@ class Response:
     baseline_first: bool = False
     baseline_second: bool = False
     headers_complete: bool = True
+    tls_version: str | None = None
 
 
 _SECURITY_HEADERS = {
@@ -133,7 +185,10 @@ def _header_facts(headers, complete):
                 (name == 'referrer_policy' and v in ('no-referrer', 'no-referrer-when-downgrade', 'origin', 'origin-when-cross-origin', 'same-origin', 'strict-origin', 'strict-origin-when-cross-origin', 'unsafe-url')) or
                 (name == 'permissions_policy' and v in ('camera=()', 'microphone=()', 'geolocation=()'))
             )
-            result[name] = 'present' if recognized else 'unknown'
+            if name == 'hsts' and recognized and int(v.split(';', 1)[0].split('=', 1)[1]) == 0:
+                result[name] = 'invalid'  # max-age=0 explicitly disables HSTS
+            else:
+                result[name] = 'present' if recognized else 'unknown'
     return result
 
 
@@ -144,18 +199,22 @@ def _cookie_facts(headers):
             continue
         count += 1
         parts = value.split(';')
-        if len(value) > 8192 or '=' not in parts[0] or not re.fullmatch(r"[!#$%&'*+.^_`|~0-9A-Za-z-]+", parts[0].split('=', 1)[0].strip()) or any(ord(c) < 32 or ord(c) == 127 for c in value):
+        if len(value) > 8192 or '=' not in parts[0]:
             indeterminate += 1
             continue
-        attributes = [p.strip().lower() for p in parts[1:]]
-        names = [x.split('=', 1)[0].strip() for x in attributes]
-        # Commas/quotes and duplicate or malformed attributes are conservative unknowns,
-        # including legitimate Expires dates whose interpretation varies by client.
-        if ',' in value or '"' in value or len(names) != len(set(names)) or any(not x for x in names) or any(x.startswith(('secure=', 'httponly=')) for x in attributes):
+        name, cookie_value = parts[0].split('=', 1)
+        # Strict unquoted RFC 6265 cookie-octet; do not normalize the pair.
+        if (not re.fullmatch(r"[!#$%&'*+.^_`|~0-9A-Za-z-]+", name)
+                or name.startswith(('__Host-', '__Secure-'))
+                or not re.fullmatch(r'[\x21\x23-\x2b\x2d-\x3a\x3c-\x5b\x5d-\x7e]*', cookie_value)):
             indeterminate += 1
             continue
-        same = [x for x in attributes if x.split('=', 1)[0].strip() == 'samesite']
-        if len(same) > 1 or (same and same[0] not in ('samesite=strict', 'samesite=lax', 'samesite=none')):
+        attributes = [p.strip(' ').lower() for p in parts[1:]]
+        # Only these attributes are understood; all others, including Expires,
+        # prefixes, duplicate flags and ambiguous syntax, remain unknown.
+        allowed = {'secure', 'httponly', 'samesite=strict', 'samesite=lax', 'samesite=none'}
+        names = [x.split('=', 1)[0] for x in attributes]
+        if any(x not in allowed for x in attributes) or len(names) != len(set(names)):
             indeterminate += 1
             continue
         secure += int('secure' not in attributes)
@@ -283,7 +342,9 @@ class SafeTransport:
     """One instance per audit. No redirects, cookies, proxies, retries or auth by library.
 
     resolver/socket_factory/tls_context are trusted unit-test injection points, not API input.
-    Deadlines are cooperative; a blocking resolver or slow-drip buffered read can exceed them.
+    OS DNS may outlive a timed-out request, but cannot initiate HTTP; its single
+    process-wide slot remains occupied until resolution ends. Deadlines are
+    subject to OS scheduling and blocking system call timeout granularity.
     """
     def __init__(self, scope: Scope, *, resolver=socket.getaddrinfo, socket_factory=socket.socket,
                  tls_context=None, timeout=5.0, deadline=45.0, max_bytes=262144, max_requests=30, approved_probes=None, scoped_probes=None, cors_routes=None, allowed_methods=None):
@@ -377,6 +438,9 @@ class SafeTransport:
             result = {'outcome': 'blocked' if response.blocked else 'indeterminate' if response.indeterminate else 'ok', 'cookies': facts}
             if include_security_headers:
                 result['security_headers'] = _header_facts(response.headers, not response.blocked and not response.indeterminate and response.headers_complete and self.count - before == 1)
+                if (not response.blocked and not response.indeterminate and response.headers_complete and
+                    self.count - before == 1 and response.tls_version in ('TLSv1.2', 'TLSv1.3')):
+                    result['tls'] = {'certificate': 'verified', 'protocol': response.tls_version}
             # Preserve the existing direct-response observer contract.
             if self.count - before > 1:
                 result['redirected'] = True
@@ -553,7 +617,7 @@ class SafeTransport:
             scheme, host, port = origin
             network_failure = False
             try:
-                answers = self.resolver(host, port, type=socket.SOCK_STREAM)
+                answers = _resolve_bounded(self.resolver, host, port, self._remaining)
                 self._remaining()
                 if not answers:
                     raise TransportError('empty DNS')
@@ -566,28 +630,34 @@ class SafeTransport:
                         raise TransportError('unsafe DNS answer')
                     addresses.append((family, proto, sockaddr, ip))
                 family, proto, sockaddr, ip = addresses[0]
+                self._remaining()
                 sock = self.socket_factory(family, socket.SOCK_STREAM, proto)
+                response = None
                 try:
                     sock.settimeout(self._remaining())
                     sock.connect(sockaddr)
                     peer = sock.getpeername()
                     if ipaddress.ip_address(peer[0]) != ip or peer[1] != port:
                         raise TransportError('peer mismatch')
+                    tls_version = None
                     if scheme == 'https':
                         context = self.tls_context or ssl.create_default_context()
                         if context.verify_mode != ssl.CERT_REQUIRED or not context.check_hostname:
                             raise TransportError('TLS verification required')
                         sock.settimeout(self._remaining())
                         sock = context.wrap_socket(sock, server_hostname=host)
+                        if isinstance(sock, ssl.SSLSocket) and sock.getpeercert():
+                            tls_version = sock.version()
                     sock.settimeout(self._remaining())
                     authority = f'[{host}]' if ':' in host else host
                     if port != (443 if scheme == 'https' else 80):
                         authority += f':{port}'
                     lines = [f'{method} {path} HTTP/1.1', f'Host: {authority}', 'Connection: close', 'Accept-Encoding: identity']
                     lines.extend(f'{k}: {v}' for k, v in clean.items())
+                    sock.settimeout(self._remaining())
                     sock.sendall(('\r\n'.join(lines) + '\r\n\r\n').encode('ascii'))
                     sock.settimeout(self._remaining())
-                    checked_sock = _HeaderCheckedSocket(sock)
+                    checked_sock = _HeaderCheckedSocket(sock, self._remaining)
                     response = http.client.HTTPResponse(checked_sock, method=method)
                     response.begin()
                     if not checked_sock.stream.complete:
@@ -649,8 +719,10 @@ class SafeTransport:
                                       baseline_marker=b'FORTRESSINERT2026' in baseline_data,
                                       baseline_first=b'https://example.invalid/' in baseline_data,
                                       baseline_second=b'https://second.invalid/' in baseline_data,
-                                      headers_complete=not response.msg.defects)
+                                      headers_complete=not response.msg.defects, tls_version=tls_version)
                 finally:
+                    if response is not None:
+                        response.close()
                     sock.close()
             except TransportError:
                 self.blocked = True

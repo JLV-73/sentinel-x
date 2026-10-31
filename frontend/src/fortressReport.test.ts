@@ -1,5 +1,75 @@
 import {describe,it,expect} from 'vitest';
 import * as report from './fortressReport';
+it('never attributes a finding to an undeclared or unvalidated route',()=>{
+ const finding={id:'hsts',status:'attention',severity:'low',route_index:4,route:'/PRIVATE_PATH'};
+ const input={complete:false,requests_used:1,findings:[finding],route_execution:[{route_index:1,state:'completed'}]};
+ for(const locale of ['en','fr'] as const){
+  for(const scope of [{routes:['https://example.test/PRIVATE_PATH'],includeOrigin:false},undefined]){
+   const html=report.renderFortressReport(input,locale,scope);
+   expect(html).not.toContain('Route 4'); expect(html).not.toContain('PRIVATE_PATH');
+   const article=new DOMParser().parseFromString(html,'text/html').querySelector('article')!;
+   expect(article.textContent).toContain(locale==='fr'?'Indéterminé':'Indeterminate');
+  }
+ }
+});
+it('requires matching scope and valid execution for finding route attribution',()=>{
+ const finding={id:'hsts',status:'attention',severity:'low',route_index:1,route:'/PRIVATE'};
+ const scope={routes:['https://example.test/PRIVATE'],includeOrigin:false};
+ const input={complete:false,requests_used:1,findings:[finding],route_execution:[{route_index:1,state:'completed'}]};
+ const article=(data:unknown,s:typeof scope)=>new DOMParser().parseFromString(report.renderFortressReport(data,'en',s),'text/html').querySelector('article')!.textContent!;
+ expect(article(input,scope)).toContain('Route 1 (declared)');
+ for(const route_execution of [null,[],[{route_index:2,state:'completed'}],[{route_index:1,state:'completed'},{route_index:2,state:'not_started'}]]){
+  const text=article({...input,route_execution},scope);expect(text).not.toContain('Route 1 (declared)');expect(text).toContain('Indeterminate');expect(text).not.toContain('PRIVATE');
+ }
+ expect(article(input,{routes:['invalid'],includeOrigin:false})).not.toContain('Route 1 (declared)');
+});
+it('accepts the narrow positive cookie code only for a conformant cookie finding',()=>{
+ const findings=[{id:'cookie_attributes',status:'conformant',severity:'info',evidence_code:'cookie_attributes_present'}, {id:'cookie_attributes',status:'attention',severity:'low',evidence_code:'cookie_attributes_present'}, {id:'hsts',status:'conformant',severity:'info',evidence_code:'cookie_attributes_present'}];
+ expect(report.safeFortressResult({complete:false,requests_used:1,findings}).findings.map(f=>f.evidence_code)).toEqual(['cookie_attributes_present','unknown','unknown']);
+});
+it('rejects evidence from invalid original tuples across repeated sanitization',()=>{
+ const codes=['header_absent','header_present_unassessed','cookie_attributes_missing','tls_verified','http_plaintext','redirect_not_followed'];
+ const findings=['hsts','cookie_attributes','https_tls','redirect'].flatMap(id=>['conformant','attention','suspected','confirmed','indeterminate','INVALID'].flatMap(status=>['info','low','medium','high','critical','unknown','INVALID'].flatMap(severity=>codes.map(evidence_code=>({id,status,severity,evidence_code})))));
+ const validStatuses:Record<string,string[]>={hsts:['conformant','attention','indeterminate'],cookie_attributes:['conformant','attention','indeterminate'],https_tls:['conformant','indeterminate'],redirect:['conformant','confirmed','indeterminate']};
+ const levels:Record<string,string>={conformant:'info',attention:'low',suspected:'medium',confirmed:'medium',indeterminate:'unknown'};
+ const once=report.safeFortressResult({complete:false,requests_used:0,findings:findings.slice(0,100)});
+ for(let start=0;start<findings.length;start+=100){
+  const batch=findings.slice(start,start+100), safe=report.safeFortressResult({complete:false,requests_used:0,findings:batch}), twice=report.safeFortressResult(safe);
+  batch.forEach((f,i)=>{if(!validStatuses[f.id].includes(f.status)||levels[f.status]!==f.severity){expect(safe.findings[i].evidence_code,JSON.stringify(f)).toBe('unknown');expect(twice.findings[i].evidence_code).toBe('unknown');}});
+ }
+ expect(once.findings.length).toBe(100);
+});
+it('reports missing recommended cookie attributes without asserting applicability in either language',()=>{
+ const input={complete:false,requests_used:1,findings:[{id:'cookie_attributes',status:'attention',severity:'low',evidence_code:'cookie_attributes_missing'}]};
+ for(const [locale,expected,unproven] of [['en','recommended attribute','applicability was not assessed'],['fr','attributs recommandés','applicabilité n’a pas été évaluée']] as const){
+  const html=report.renderFortressReport(input,locale); expect(html).toContain(expected);expect(html).toContain(unproven);
+ }
+});
+it('labels each route index as declared and execution as unavailable in both languages',()=>{
+ const input={complete:false,requests_used:1,findings:[{id:'hsts',status:'indeterminate',severity:'unknown',route_index:2,route:'/private',execution_state:'observed'}]};
+ for(const [locale,declared,unknown] of [['en','Route 2 (declared)','Per-route execution state unavailable'],['fr','Route 2 (déclarée)','État d’exécution par route indisponible']] as const){
+  const html=report.renderFortressReport(input,locale,{routes:['https://example.test/','https://example.test/private'],includeOrigin:false});
+  expect(html).toContain(declared); expect(html).toContain(unknown);expect(html).not.toContain('/private');
+ }
+});
+it('distinguishes external guidance from observation provenance and severity rationale',()=>{
+ const input={complete:true,requests_used:1,findings:[{id:'cors',status:'attention',severity:'low',evidence_code:'unknown',provenance:'PRIVATE',severity_rationale:'PRIVATE'}]};
+ for(const [locale,guidance,provenance,rationale] of [['en','General guidance','Observation provenance','Severity rationale'],['fr','Référence générale','Provenance de l’observation','Justification de gravité']] as const){
+  const doc=new DOMParser().parseFromString(report.renderFortressReport(input,locale),'text/html');const article=doc.querySelector('article')!;
+  const fields=Object.fromEntries([...article.querySelectorAll('dt')].map(dt=>[dt.textContent,dt.nextElementSibling?.textContent]));
+  expect(fields[guidance]).toContain('OWASP');expect(fields[provenance]?.toLowerCase()).toContain(locale==='en'?'unavailable':'indisponible');expect(fields[rationale]).toContain(locale==='en'?'not available':'non disponible');expect(article.textContent).not.toContain('PRIVATE');
+ }
+});
+it('requires explicit true to export an identifying origin and excludes credentials and secret values',()=>{
+ const input={complete:false,requests_used:0,findings:[{id:'hsts',status:'attention',severity:'low',evidence:'cookie=PRIVATE_VALUE'}]};
+ for(const locale of ['en','fr'] as const){
+  const routes=['https://person.example.test/private?token=PRIVATE_VALUE'];
+  const implicit=report.renderFortressReport(input,locale,{routes,includeOrigin:'yes' as unknown as boolean});
+  expect(implicit).not.toContain('person.example.test');expect(implicit).not.toContain('PRIVATE_VALUE');
+  const explicit=report.renderFortressReport(input,locale,{routes,includeOrigin:true});expect(explicit).toContain('https://person.example.test');expect(explicit).not.toContain('PRIVATE_VALUE');expect(explicit).not.toContain('/private');
+  expect(report.renderFortressReport(input,locale,{routes:['https://user:pass@person.example.test/'],includeOrigin:true})).not.toContain('person.example.test');
+ }
+});
 describe('standalone fortress report',()=>{
  it('provides bilingual finding context without inventing evidence or severity rationale',()=>{
   const input={complete:false,requests_used:1,findings:[{id:'hsts',status:'attention',severity:'low',method:'GET',route:'[redacted route]',date:'2026-10-29'}]};
@@ -54,7 +124,7 @@ it('rejects malformed envelopes rather than reporting zero or completion',()=>{
 it('keeps only bounded context through the UI sanitization and export boundaries',()=>{
  const input={complete:true,requests_used:3,mode:'deep',findings:[{id:'reflection',status:'suspected',severity:'medium',method:'GET',route:'/person?secret=PRIVATE',date:'2026-02-29',reference:'https://evil.test/PRIVATE',evidence:'<img src=x onerror=PRIVATE>',reason:'PRIVATE',extra:'PRIVATE'}]};
  const safe=report.safeFortressResult(input);
- expect(safe.findings[0]).toEqual({id:'reflection',status:'suspected',severity:'medium',method:'GET',route:'[redacted route]',date:'unknown'});
+ expect(safe.findings[0]).toEqual({id:'reflection',status:'suspected',severity:'medium',method:'GET',route:'[redacted route]',route_index:null,evidence_code:'unknown',date:'unknown'});
  for(const locale of ['en','fr'] as const){
   const html=report.renderFortressReport(safe,locale);
   expect(html).not.toContain('PRIVATE'); expect(html).not.toContain('evil.test'); expect(html).not.toContain('2026-02-29');
@@ -105,4 +175,41 @@ it('accepts only evaluator-defined status and severity combinations for each rul
   const valid=(status==='indeterminate'||permitted.includes(status))&&severity[status]===level;
   expect([f.status,f.severity],id+'/'+status+'/'+level).toEqual(valid?[status,level]:['indeterminate','unknown']);
  }
+});
+
+
+it('preserves typed evidence across repeated sanitization and rejects incompatible claims',()=>{
+ const input={complete:true,requests_used:1,findings:[{id:'hsts',status:'attention',severity:'low',evidence_code:'header_absent',route_index:1},{id:'hsts',status:'conformant',severity:'info',evidence_code:'header_present_unassessed',route_index:2},{id:'https_tls',status:'conformant',severity:'info',evidence_code:'tls_verified',route_index:3}]};
+ const safe=report.safeFortressResult(report.safeFortressResult(input));
+ expect(safe.findings.map(f=>f.evidence_code)).toEqual(['header_absent','unknown','tls_verified']);
+ const html=report.renderFortressReport(safe,'en');
+ expect(html).toContain('Header absent'); expect(html).toContain('TLS verification succeeded'); expect(html).not.toContain('Route 1');
+});
+
+
+it('discloses only an explicitly selected operator origin and route indexes',()=>{
+ const input={complete:true,requests_used:1,findings:[]};
+ const html=report.renderFortressReport(input,'fr',{routes:['https://example.test/person/PRIVATE?token=SECRET','https://example.test/other'],includeOrigin:true});
+ expect(html).toContain('https://example.test'); expect(html).toContain('Route 1'); expect(html).toContain('Route 2');
+ expect(html).not.toContain('PRIVATE');expect(html).not.toContain('SECRET');expect(html).not.toContain('/other');
+ const hidden=report.renderFortressReport(input,'en',{routes:['https://example.test/person/PRIVATE'],includeOrigin:false});
+ expect(hidden).not.toContain('example.test'); expect(hidden).toContain('Route 1');
+});
+
+
+it('renders each supported evidence code in both languages without admitting arbitrary text',()=>{
+ const findings=[{id:'hsts',status:'attention',severity:'low',evidence_code:'header_absent'},{id:'csp',status:'indeterminate',severity:'unknown',evidence_code:'header_present_unassessed'},{id:'cookie_attributes',status:'attention',severity:'low',evidence_code:'cookie_attributes_missing'},{id:'https_tls',status:'conformant',severity:'info',evidence_code:'tls_verified'},{id:'https_tls',status:'indeterminate',severity:'unknown',evidence_code:'http_plaintext'},{id:'redirect',status:'indeterminate',severity:'unknown',evidence_code:'redirect_not_followed'},{id:'hsts',status:'attention',severity:'low',evidence_code:'<script>PRIVATE</script>',route_index:999}];
+ for(const [locale,terms] of [['en',['Header absent','Header present','cookie lacks','TLS verification succeeded','Plain HTTP','redirect was not followed']],['fr',['En-tête absent','En-tête présent','cookie ne possède','vérification TLS','HTTP en clair','redirection n’a pas été suivie']]] as const){
+  const html=report.renderFortressReport({complete:true,requests_used:1,findings},locale);
+  for(const term of terms) expect(html).toContain(term);
+  expect(html).not.toContain('PRIVATE'); expect(html).not.toContain('Route 999');expect(html).toContain('@media(max-width:600px)');
+ }
+});
+
+it('renders only strictly validated route execution, never route paths',()=>{
+ const input={complete:false,requests_used:1,findings:[],route_execution:[{route_index:1,state:'completed'},{route_index:2,state:'not_started'}]};
+ const html=report.renderFortressReport(input,'fr',{routes:['https://private.test/secret','https://private.test/person'],includeOrigin:false});
+ expect(html).toContain('Observation directe terminée');expect(html).toContain('Non démarrée');expect(html).not.toContain('private.test');expect(html).not.toContain('/secret');
+ const bad=report.renderFortressReport({...input,route_execution:[{route_index:1,state:'<secret>'}]},'fr');
+ expect(bad).not.toContain('&lt;secret&gt;');expect(bad).toContain('État d’exécution par route indisponible');
 });

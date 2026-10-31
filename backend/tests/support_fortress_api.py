@@ -29,7 +29,7 @@ def _project(result, payload):
     """
     if type(result) is dict and result == {'ok': True} and type(result['ok']) is bool:
         return {'ok': True}  # fixed test sentinel
-    keys = {'audit_id', 'mode', 'started_at', 'finished_at', 'scope', 'requests_used', 'complete', 'findings', 'limitations'}
+    keys = {'audit_id', 'mode', 'started_at', 'finished_at', 'scope', 'requests_used', 'complete', 'findings', 'limitations', 'route_execution'}
     if type(result) is not dict or set(result) != keys:
         raise ValueError()
     if (type(result['audit_id']) is not str or not re.fullmatch(r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}', result['audit_id']) or
@@ -42,6 +42,17 @@ def _project(result, payload):
         if type(result[key]) is not str:
             raise ValueError()
         datetime.fromisoformat(result[key])
+    execution = result['route_execution']
+    states = ('not_started', 'completed', 'indeterminate', 'redirected', 'blocked')
+    if type(execution) is not list or len(execution) != len(payload['routes']):
+        raise ValueError()
+    for index, item in enumerate(execution, 1):
+        if (type(item) is not dict or set(item) != {'route_index', 'state'} or
+            type(item['route_index']) is not int or item['route_index'] != index or
+            type(item['state']) is not str or item['state'] not in states):
+            raise ValueError()
+    if sum(item['state'] in ('completed', 'redirected') for item in execution) > result['requests_used']:
+        raise ValueError()
     findings = result['findings']
     if type(findings) is not list or len(findings) != len(NAMES) * len(payload['routes']):
         raise ValueError()
@@ -52,25 +63,42 @@ def _project(result, payload):
             raise ValueError()
         # Regenerate exact known service text for the admitted finite outcomes.
         date = item['date']
+        if type(item.get('route_index')) is not int or item['route_index'] != index // len(NAMES) + 1:
+            raise ValueError()
+        code = item.get('evidence_code')
+        base = {k: v for k, v in item.items() if k not in ('route_index', 'evidence_code')}
         candidates = [evaluate_findings({}, route='[redacted route]', method='GET', date=date)[index % len(NAMES)]]
         if name in HEADERS_CHECKS:
             candidates.append(evaluate_findings({name: {'complete': True, 'observed': False}}, route='[redacted route]', method='GET', date=date)[index % len(NAMES)])
+        elif name == 'https_tls':
+            candidates.append(evaluate_findings({name: {'complete': True, 'observed': True}}, route='[redacted route]', method='GET', date=date)[index % len(NAMES)])
         elif name == 'cookie_attributes' and type(item.get('evidence')) is str:
+            positive = evaluate_findings({name: {'complete': True, 'observed': False, 'cookie_count': 1}}, route='[redacted route]', method='GET', date=date)[index % len(NAMES)]
+            positive['evidence'] = 'Observed recommended attributes on examined cookies.'
+            positive['reason'] = 'Limited observation; applicability is indeterminate, not a certification.'
+            candidates.append(positive)
             match = re.search(r' Cookie count: ([1-9][0-9]{0,4})\.', item['evidence'])
             if match and int(match.group(1)) <= 10000:
                 facts = {name: {'complete': True, 'observed': True, 'cookie_count': int(match.group(1))}}
                 candidates.append(evaluate_findings(facts, route='[redacted route]', method='GET', date=date)[index % len(NAMES)])
-        if item not in candidates:
+        expected_code = ('cookie_attributes_present' if name == 'cookie_attributes' and item.get('status') == 'conformant'
+                         else 'tls_verified' if name == 'https_tls' and item.get('status') == 'conformant'
+                         else 'cookie_attributes_missing' if name == 'cookie_attributes' and item.get('status') == 'attention'
+                         else 'header_absent' if name in HEADERS_CHECKS and item.get('status') == 'attention'
+                         else 'indeterminate')
+        if type(code) is not str or code != expected_code or base not in candidates:
             raise ValueError()
         status = item['status']
-        projected.append({'id': name, 'status': status, 'severity': 'low' if status == 'attention' else 'unknown',
+        projected.append({'id': name, 'status': status, 'severity': 'low' if status == 'attention' else 'info' if status == 'conformant' else 'unknown',
                           'reason': 'See status.', 'evidence': 'Details withheld.',
                           'limitations': 'Incomplete prototype.', 'preconditions': 'Authorized observation required.',
                           'recommendation': 'Review within authorized scope.', 'reference': 'Not provided.',
-                          'method': 'GET', 'route': '[redacted route]', 'date': 'unknown'})
+                          'method': 'GET', 'route': '[redacted route]', 'date': 'unknown',
+                          'route_index': item['route_index'], 'evidence_code': code})
     return {'audit_id': 'withheld', 'mode': 'standard', 'started_at': 'withheld', 'finished_at': 'withheld',
             'scope': {'origin': '[redacted]', 'paths': ['[redacted route]'] * len(payload['routes'])},
             'requests_used': result['requests_used'], 'complete': False, 'findings': projected,
+            'route_execution': [{'route_index': item['route_index'], 'state': item['state']} for item in execution],
             'limitations': ['Incomplete prototype.']}
 
 

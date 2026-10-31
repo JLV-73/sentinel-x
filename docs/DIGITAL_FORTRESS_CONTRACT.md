@@ -34,6 +34,8 @@ public peer; it is not evidence of an actual public peer or a production end-to-
 
 ## Local use on Windows
 
+For the new isolated standard lab, see [P2 standard lab](P2_STANDARD_LAB.md).
+
 These steps assume this checkout and its project dependencies already exist; no
 installation or download is performed. In PowerShell, replace the placeholder with
 this checkout's local directory:

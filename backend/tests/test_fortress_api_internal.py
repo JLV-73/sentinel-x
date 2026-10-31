@@ -149,7 +149,7 @@ def test_consumer_secret_result_fails_closed():
     assert status == 503 and result == {'error': 'unavailable'}
 
 
-@pytest.mark.parametrize('field', ['reason', 'evidence', 'id', 'status', 'severity', 'limitations', 'preconditions', 'recommendation', 'reference', 'method', 'route', 'date', 'extra'])
+@pytest.mark.parametrize('field', ['reason', 'evidence', 'id', 'status', 'severity', 'limitations', 'preconditions', 'recommendation', 'reference', 'method', 'route', 'date', 'extra', 'route_index', 'evidence_code'])
 def test_real_shape_with_secret_field_fails_closed(monkeypatch, field):
     class Transport:
         count = 0
@@ -172,6 +172,27 @@ def test_identity_encoding_is_allowed():
     assert run(headers=HEADERS + [(b'content-encoding', b'identity')])[0] == 200
 
 
+@pytest.mark.parametrize('field,value', [('route_index', True), ('route_index', 0),
+    ('route_index', 2), ('route_index', 5), ('evidence_code', 'header_absent'),
+    ('evidence_code', 'unknown')])
+def test_typed_finding_cross_product_rejects_invalid(monkeypatch, field, value):
+    class Transport:
+        def __init__(self, *args, **kwargs):
+            self.count = 0
+            self.blocked = False
+        def observe_headers(self, method, url):
+            self.count += 1
+            return {'outcome': 'ok', 'redirected': False, 'security_headers': {}}
+    monkeypatch.setattr(service, '_SafeTransport', Transport)
+    monkeypatch.setattr(service, '_acquire_process_mutex', lambda: 1)
+    monkeypatch.setattr(service, '_release_process_mutex', lambda handle: None)
+    def corrupt(p):
+        result = service._audit(p)
+        result['findings'][0][field] = value
+        return result
+    assert run(consumer=corrupt) == (503, {'error': 'unavailable'})
+
+
 def test_real_service_with_test_only_mock_transport(monkeypatch):
     instances = []
     class Transport:
@@ -185,9 +206,11 @@ def test_real_service_with_test_only_mock_transport(monkeypatch):
     monkeypatch.setattr(service, '_release_process_mutex', lambda handle: None)
     status, result = run(consumer=service._audit)
     assert status == 200 and len(instances) == 1 and instances[0].count == 1
-    assert set(result) == {'audit_id','mode','started_at','finished_at','scope','requests_used','complete','findings','limitations'}
+    assert set(result) == {'audit_id','mode','started_at','finished_at','scope','requests_used','complete','findings','limitations','route_execution'}
     assert result['complete'] is False and result['requests_used'] == 1
     assert result['scope'] == {'origin':'[redacted]','paths':['[redacted route]']}
-    assert all(set(f) == {'id','status','severity','reason','evidence','limitations','preconditions','recommendation','reference','method','route','date'} for f in result['findings'])
+    assert all(set(f) == {'id','status','severity','reason','evidence','limitations','preconditions','recommendation','reference','method','route','date','route_index','evidence_code'} for f in result['findings'])
+    assert all(f['route_index'] == 1 for f in result['findings'])
+    assert next(f for f in result['findings'] if f['id'] == 'hsts')['evidence_code'] == 'header_absent'
     encoded = json.dumps(result)
     assert SENTINEL not in encoded and 'example.invalid' not in encoded

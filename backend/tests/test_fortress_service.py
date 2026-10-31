@@ -143,8 +143,8 @@ def test_sequential_get_facts_and_redacted_dto():
     assert all(x['status'] == 'indeterminate' for x in result['findings'] if x['id'] in ('cors', 'redirect', 'reflection', 'version'))
     encoded = json.dumps(result)
     assert 'example.invalid' not in encoded and 'private-secret-path' not in encoded
-    assert set(result) == {'audit_id', 'mode', 'started_at', 'finished_at', 'scope', 'requests_used', 'complete', 'findings', 'limitations'}
-    assert all(set(f) == {'id','status','severity','reason','evidence','limitations','preconditions','recommendation','reference','method','route','date'} for f in result['findings'])
+    assert set(result) == {'audit_id', 'mode', 'started_at', 'finished_at', 'scope', 'requests_used', 'complete', 'findings', 'limitations', 'route_execution'}
+    assert all(set(f) == {'id','status','severity','reason','evidence','limitations','preconditions','recommendation','reference','method','route','date','route_index','evidence_code'} for f in result['findings'])
 
 
 @pytest.mark.parametrize('observation', [{'outcome': 'blocked'}, {'outcome': 'error'}, {'outcome': 'indeterminate'}, {}])
@@ -159,7 +159,6 @@ def test_non_ok_stops_later_routes(observation):
 
 @pytest.mark.parametrize('cookies', [
     {'count': 0, 'missing_secure': 0, 'missing_httponly': 0, 'missing_samesite': 0, 'indeterminate': 0},
-    {'count': 1, 'missing_secure': 0, 'missing_httponly': 0, 'missing_samesite': 0, 'indeterminate': 0},
     {'count': 1, 'missing_secure': 1, 'missing_httponly': 0, 'missing_samesite': 0, 'indeterminate': 1},
     {'count': True, 'missing_secure': 1, 'missing_httponly': 0, 'missing_samesite': 0, 'indeterminate': 0},
 ])
@@ -168,6 +167,24 @@ def test_incomplete_cookie_evidence_does_not_claim_absence(cookies):
         fake = Fake(*a, **k); fake.observations = [{'outcome':'ok', 'redirected': False, 'cookies': cookies}]; return fake
     result = audit(payload(), transport_factory=factory)
     assert next(x for x in result['findings'] if x['id'] == 'cookie_attributes')['status'] == 'indeterminate'
+
+
+def test_cookie_ambiguity_in_transport_cannot_produce_positive_result():
+    # A space is not a cookie-octet and cannot support a positive result.
+    from app.fortress_transport import _cookie_facts
+    valid = _cookie_facts([('Set-Cookie', 'lab=ok; Secure; HttpOnly; SameSite=Lax')])
+    malformed = _cookie_facts([('Set-Cookie', 'lab=bad value; Secure; HttpOnly; SameSite=Lax')])
+    assert valid != malformed
+    assert valid == (1, 0, 0, 0, 0)
+    assert malformed[-1] == 1
+    keys = ('count', 'missing_secure', 'missing_httponly', 'missing_samesite', 'indeterminate')
+    def factory(*a, **k):
+        fake = Fake(*a, **k)
+        fake.observations = [{'outcome': 'ok', 'redirected': False, 'cookies': dict(zip(keys, malformed))}]
+        return fake
+    result = audit(payload(), transport_factory=factory)
+    assert next(x for x in result['findings'] if x['id'] == 'cookie_attributes')['status'] == 'indeterminate'
+    assert 'bad value' not in str(result)
 
 
 @pytest.mark.parametrize('marker', [True, 0, 'false'])
@@ -240,8 +257,9 @@ def test_redirected_final_cookie_is_not_attributed_to_initial_route():
     result = audit(payload(target='http://example.com/first', additional_urls=['http://example.com/second']), transport_factory=build_real)
     statuses = [x['status'] for x in result['findings'] if x['id'] == 'cookie_attributes']
     assert statuses == ['indeterminate', 'attention']
-    assert [x['status'] for x in result['findings'] if x['id'] == 'hsts'] == ['indeterminate', 'attention']
+    assert [x['status'] for x in result['findings'] if x['id'] == 'hsts'] == ['indeterminate', 'indeterminate']
     assert result['requests_used'] == instances[0].count == resolver.call_count == factory.call_count == 3
+    assert result['route_execution'] == [{'route_index': 1, 'state': 'redirected'}, {'route_index': 2, 'state': 'completed'}]
     assert [s.sent[0].split(b'\r\n')[0] for s in (first, redirected, direct)] == [b'GET /first HTTP/1.1', b'GET /second HTTP/1.1', b'GET /second HTTP/1.1']
     assert 'example.com' not in json.dumps(result) and 'secret' not in json.dumps(result)
     assert all(x['status'] != 'conformant' for x in result['findings'])
@@ -257,6 +275,7 @@ def test_redirect_attempts_count_against_budget_and_halt():
         f = RedirectBudget(*a, **k); instances.append(f); return f
     result = audit(payload(additional_urls=['https://example.invalid/second']), transport_factory=factory)
     assert result['requests_used'] == 30 and len(instances[0].calls) == 1
+    assert result['route_execution'][1] == {'route_index': 2, 'state': 'not_started'}
     assert all(x['status'] == 'indeterminate' for x in result['findings'])
 
 
@@ -385,3 +404,22 @@ def test_standard_route_explicit_get_consent_is_accepted():
     result = audit(request, transport_factory=Fake)
     assert result["requests_used"] == 1
     assert result["complete"] is False
+
+
+def test_execution_states_distinguish_redirect_and_unstarted():
+    class Redirect(Fake):
+        def observe_headers(self, method, url):
+            self.count += 2
+            return {'outcome': 'error', 'redirected': True}
+    result = audit(payload(additional_urls=['https://example.invalid/second']), transport_factory=Redirect)
+    assert result['route_execution'] == [{'route_index': 1, 'state': 'redirected'}, {'route_index': 2, 'state': 'not_started'}]
+    assert 'private-secret-path' not in json.dumps(result)
+
+
+def test_test_adapter_projects_execution_without_private_data():
+    from support_fortress_api import _project
+    request = payload()
+    result = audit(request, transport_factory=Fake)
+    projected = _project(result, request)
+    assert projected['route_execution'] == [{'route_index': 1, 'state': 'completed'}]
+    assert 'private-secret-path' not in json.dumps(projected)

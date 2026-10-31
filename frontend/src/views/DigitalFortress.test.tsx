@@ -58,3 +58,19 @@ describe('Digital Fortress',()=>{
  it('shows 503 disabled status without displaying server text',async()=>{vi.mocked(api.fortress).mockRejectedValue({status:503,detail:'SECRET'});const {container}=setup();target();consent();start();expect(await screen.findByRole('alert')).toHaveTextContent('Audit disabled until safety is verified (HTTP 503).');expect(container.textContent).not.toContain('SECRET');fireEvent.click(screen.getByRole('button',{name:'Français'}));expect(screen.getByRole('alert')).toHaveTextContent('Audit désactivé');});
  it('never renders server free text and localizes classifications',async()=>{const secret='SENTINEL_SECRET';vi.mocked(api.fortress).mockResolvedValue({...result,audit_id:secret,started_at:secret,finished_at:secret,scope:{origin:'https://x.test/#'+secret,paths:['/api_key='+secret]},limitations:[secret],findings:[{id:'hsts',status:'conformant',severity:'info',reason:'Bearer '+secret,evidence:'Cookie: '+secret,limitations:secret,preconditions:secret,recommendation:secret,reference:secret,method:'GET',route:secret,date:secret}]});const {container}=setup();target();consent();start();await screen.findByText(/hsts/);expect(container.textContent).not.toContain(secret);expect(container.textContent).toContain('Conformant');expect(container.textContent).toContain('Informational');fireEvent.click(screen.getByRole('button',{name:'Français'}));expect(container.textContent).toContain('Conforme');expect(container.textContent).toContain('Information');expect(container.textContent).not.toContain(secret);});
 });
+
+
+it('keeps origin export opt-in and resets it on scope changes',async()=>{
+ vi.mocked(api.fortress).mockResolvedValue(result); setup();target();consent();start();
+ await screen.findByRole('button',{name:/Download/});
+ const option=screen.getByLabelText('Include the target origin in the report (may identify a person or organisation)');
+ expect(option).not.toBeChecked();fireEvent.click(option);expect(option).toBeChecked();
+ fireEvent.change(screen.getByLabelText('Primary URL'),{target:{value:'https://example.test/new'}});
+ consent();start(); await screen.findByRole('button',{name:/Download/});
+ expect(screen.getByLabelText('Include the target origin in the report (may identify a person or organisation)')).not.toBeChecked();
+});
+
+it('shows validated per-route observation state without server text',async()=>{
+ vi.mocked(api.fortress).mockResolvedValue({...result,route_execution:[{route_index:1,state:'completed'}]} as typeof result);
+ setup();target();consent();start();expect(await screen.findByText(/Direct header observation completed/)).toBeInTheDocument();
+});

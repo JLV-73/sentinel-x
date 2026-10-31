@@ -61,9 +61,8 @@ def lab(monkeypatch):
 
     monkeypatch.setattr(socket.socket, 'connect', connect)
     monkeypatch.setattr(socket, 'getaddrinfo', forbidden_dns)
-    monkeypatch.setattr(service, '_SafeTransport', factory)
     try:
-        yield owned, loop, resolutions, adapters, transports, budget
+        yield owned, loop, resolutions, adapters, transports, budget, factory
     finally:
         owned.close()  # asserts listener closed and worker terminated
         loop.close()
@@ -79,13 +78,13 @@ def request(lab, data=None, *, body=None, headers=HEADERS):
         return {'type': 'http.request', 'body': body}
     async def send(message):
         sent.append(message)
-    lab[1].run_until_complete(DraftFortressAdapter(service._audit)(scope, receive, send))
+    lab[1].run_until_complete(DraftFortressAdapter(lambda p: service._audit_with_factory(p, factory=lab[6]))(scope, receive, send))
     assert [m['type'] for m in sent] == ['http.response.start', 'http.response.body']
     return sent[0]['status'], json.loads(sent[1]['body'])
 
 
 def assert_traffic(lab, paths):
-    owned, _, resolutions, adapters, transports, _ = lab
+    owned, _, resolutions, adapters, transports, _, _ = lab
     assert len(owned.requests) == len(owned.peers) == len(resolutions) == len(adapters) == len(paths)
     assert all(a.actual_peer == owned.address and a.getpeername() == (SIMULATED_IP, 80) for a in adapters)
     assert all(peer[0] == '127.0.0.1' for peer in owned.peers)
@@ -100,15 +99,16 @@ def assert_traffic(lab, paths):
 
 def assert_redacted(result, paths):
     assert set(result) == {'audit_id', 'mode', 'started_at', 'finished_at', 'scope',
-                           'requests_used', 'complete', 'findings', 'limitations'}
+                           'requests_used', 'complete', 'findings', 'limitations', 'route_execution'}
     assert type(result['audit_id']) is str and type(result['requests_used']) is int
     assert result['mode'] == 'standard' and result['complete'] is False
     assert result['scope'] == {'origin': '[redacted]', 'paths': ['[redacted route]'] * len(paths)}
     assert type(result['findings']) is list and result['findings']
     for finding in result['findings']:
         assert set(finding) == {'id', 'status', 'severity', 'reason', 'evidence', 'limitations',
-                                'preconditions', 'recommendation', 'reference', 'method', 'route', 'date'}
-        assert finding['status'] in ('attention', 'indeterminate', 'ok')
+                                'preconditions', 'recommendation', 'reference', 'method', 'route', 'date', 'route_index', 'evidence_code'}
+        assert finding['status'] in ('attention', 'indeterminate', 'conformant')
+        assert type(finding['route_index']) is int and 1 <= finding['route_index'] <= len(paths)
         assert finding['route'] == '[redacted route]' and finding['method'] == 'GET'
     encoded = json.dumps(result)
     for secret in (*SENTINELS, HOST, *paths):
@@ -121,7 +121,8 @@ def test_asgi_to_owned_fixture_produces_redacted_real_findings(lab):
     assert status == 200
     assert assert_traffic(lab, paths)[0].count == result['requests_used'] == 1
     findings = {f['id']: f for f in result['findings']}
-    for name in ('hsts', 'csp', 'x_content_type_options', 'referrer_policy', 'permissions_policy'):
+    assert findings['hsts']['status'] == 'indeterminate'
+    for name in ('csp', 'x_content_type_options', 'referrer_policy', 'permissions_policy'):
         assert findings[name]['status'] == 'attention'
     assert findings['cookie_attributes']['status'] == 'attention'
     assert_redacted(result, paths)
@@ -165,6 +166,7 @@ def test_maximum_four_routes(lab):
     paths = ('/one', '/two', '/three', '/four')
     status, result = request(lab, payload(*paths))
     assert status == 200 and result['requests_used'] == 4
+    assert result['route_execution'] == [{'route_index': i, 'state': 'completed'} for i in range(1, 5)]
     assert assert_traffic(lab, paths)[0].count == 4
     assert_redacted(result, paths)
 
@@ -175,6 +177,7 @@ def test_block_or_unapproved_redirect_stops_followup(lab, first):
     status, result = request(lab, payload(*paths))
     assert status == 200 and result['requests_used'] == 1
     transport = assert_traffic(lab, (first,))[0]
+    assert result['route_execution'] == [{'route_index': 1, 'state': 'blocked'}, {'route_index': 2, 'state': 'not_started'}]
     assert transport.blocked and transport.count == 1
     assert all(f['status'] == 'indeterminate' for f in result['findings'])
     assert_redacted(result, paths)
