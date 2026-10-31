@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT / 'backend'))
 sys.path.insert(0, str(ROOT / 'backend' / 'tests'))
 from app.fortress_service import _audit_with_factory
 from app.fortress_transport import SafeTransport
+from app.fortress_single_scope import prepare_single_scope
 from support_fortress_api import _project
 
 HOST = 'standard-lab.invalid'
@@ -63,8 +64,7 @@ def _fixture_response(scenario):
 def run_scenario(scenario):
     if type(scenario) is not str or scenario not in SCENARIOS:
         raise ValueError('unknown scenario')
-    payload = {'level': 'standard', 'authorized': True, 'routes': [{'url': 'https://' + HOST + '/',
-        'safe_use_confirmed': True, 'methods': ['GET'], 'cors_get': False, 'parameters': []}]}
+    payload = prepare_single_scope('{"url":"https://standard-lab.invalid/","authorized":true,"method":"GET"}')
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
         if hasattr(socket, 'SO_EXCLUSIVEADDRUSE'):
             listener.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
