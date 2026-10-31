@@ -11,6 +11,7 @@ import re
 import threading
 import os
 import ctypes
+import sys
 from ctypes import wintypes
 from uuid import uuid4
 
@@ -47,26 +48,53 @@ def _mutex_api():
 
 def _acquire_process_mutex():
     # No fallback if the global namespace cannot be opened or acquired.
+    handle = None
+    kernel = None
     try:
         kernel = _mutex_api()
+        ctypes.set_last_error(0)
         handle = kernel.CreateMutexW(None, False, r'Global\SentinelX-P2-DigitalFortress-Audit')
-        if not handle:
+        # An existing object, including an unowned one, has an untrusted origin.
+        # Never rely on the creator's default DACL as an identity guarantee.
+        if not handle or ctypes.get_last_error() != 0:
             raise AuditError('audit unavailable')
-        result = kernel.WaitForSingleObject(handle, 0)
-        if result not in (0, 0x80):  # normal or abandoned ownership
-            kernel.CloseHandle(handle)
+        if kernel.WaitForSingleObject(handle, 0) != 0:
             raise AuditError('audit unavailable')
-        return handle
+        acquired, handle = (kernel, handle), None
+        return acquired
     except Exception:
         raise AuditError('audit unavailable') from None
-
-
-def _release_process_mutex(handle):
-    kernel = _mutex_api()
-    try:
-        kernel.ReleaseMutex(handle)
     finally:
-        kernel.CloseHandle(handle)
+        if handle and kernel:
+            try:
+                closed = kernel.CloseHandle(handle)
+            except Exception:
+                closed = False
+            if not closed:
+                error = sys.exception()
+                if error is not None:
+                    error.add_note('mutex cleanup failed; handle may remain open')
+                else:
+                    raise AuditError('mutex cleanup failed; handle may remain open') from None
+
+
+def _release_process_mutex(mutex):
+    # Reuse the initialized API: rebuilding WinDLL here could strand the handle.
+    kernel, handle = mutex
+    failed = False
+    try:
+        if not kernel.ReleaseMutex(handle):
+            failed = True
+    except Exception:
+        failed = True
+    finally:
+        try:
+            if not kernel.CloseHandle(handle):
+                failed = True
+        except Exception:
+            failed = True
+    if failed:
+        raise AuditError('mutex cleanup failed; handle may remain open or mutex owned') from None
 
 
 def _validate(payload, language):
@@ -213,8 +241,14 @@ def _audit_with_factory(payload, *, factory, language='en'):
                 'limitations': (['Prototype incomplet : contrôles CORS et sondes non effectués ; aucune évaluation des avis.'] if language == 'fr' else
                                 ['Incomplete prototype: CORS and probes not performed; advisory assessment unavailable.'])}
     finally:
+        previous = sys.exception()
         try:
             if mutex is not None:
-                _release_process_mutex(mutex)
+                try:
+                    _release_process_mutex(mutex)
+                except AuditError:
+                    if previous is None:
+                        raise
+                    previous.add_note('mutex cleanup failed; handle may remain open or mutex owned')
         finally:
             _AUDIT_LOCK.release()

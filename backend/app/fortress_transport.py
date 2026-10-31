@@ -467,6 +467,16 @@ class SafeTransport:
         return {'outcome': 'error'}
 
     @_halt_on_uncertainty
+    def observe_standard_facts(self, method: str, url: str):
+        """Internal opt-in single-response enums; never return raw data or infer compliance."""
+        from .fortress_standard_facts import header_value_facts
+        before = self.count
+        response = self.request(method, url)
+        outcome = 'blocked' if response.blocked else 'indeterminate' if response.indeterminate else 'ok'
+        complete = (outcome == 'ok' and response.headers_complete and self.count - before == 1)
+        return {'outcome': outcome, 'header_value_facts': header_value_facts(response.headers, complete)}
+
+    @_halt_on_uncertainty
     def observe_scoped_baseline(self, url: str, key: str, kind: str):
         """Literal matches only; false does not exclude transformed signals."""
         try:
