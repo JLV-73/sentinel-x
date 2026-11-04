@@ -1,5 +1,6 @@
 // Every entry must supply EN and FR. Keys are inferred, never free-form strings.
 export const messages={
+ fortressAvailabilityNotice:['Real Internet audits are unavailable. The operational API is disabled and returns HTTP 503 after guard checks. The separate local synthetic HTTPS lab is not a certification. See docs/P2_STANDARD_LAB.md.','Les audits Internet réels sont indisponibles. L’API opérationnelle est désactivée et renvoie HTTP 503 après les contrôles de sécurité. Le laboratoire HTTPS synthétique local est distinct et ne constitue pas une certification. Voir docs/P2_STANDARD_LAB.md.'],
  fortressMethod:['Method (GET only)','Méthode (GET uniquement)'],
  fortressSafeRoute:['Safe GET for route','GET sans danger pour la route'],
  fortressDeepUnavailable:['Deep / advanced: unavailable','Approfondi / avancé : indisponible'],

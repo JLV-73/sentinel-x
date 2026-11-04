@@ -11,6 +11,19 @@ function target(){fireEvent.change(screen.getByLabelText('Primary URL'),{target:
 function consent(n=1){for(let i=1;i<=n;i++)fireEvent.click(screen.getByLabelText(`Safe GET for route ${i}`));fireEvent.click(screen.getByLabelText(/I confirm owner/))}
 function start(){fireEvent.click(screen.getByRole('button',{name:'Start audit'}))}
 describe('Digital Fortress',()=>{
+ it('displays the operational and lab limitations before target entry in both languages',()=>{
+  setup();
+  const notice=screen.getByRole('status');
+  expect(notice).toBeVisible();
+  expect(notice).toHaveTextContent('Real Internet audits are unavailable. The operational API is disabled and returns HTTP 503 after guard checks. The separate local synthetic HTTPS lab is not a certification. See docs/P2_STANDARD_LAB.md.');
+  expect(notice.compareDocumentPosition(screen.getByLabelText('Primary URL')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.getByLabelText('Primary URL')).toHaveValue('');
+  fireEvent.click(screen.getByRole('button',{name:'Français'}));
+  expect(screen.getByRole('status')).toHaveTextContent('Les audits Internet réels sont indisponibles. L’API opérationnelle est désactivée et renvoie HTTP 503 après les contrôles de sécurité. Le laboratoire HTTPS synthétique local est distinct et ne constitue pas une certification. Voir docs/P2_STANDARD_LAB.md.');
+  expect(screen.getByRole('status').compareDocumentPosition(screen.getByLabelText('URL principale')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(screen.getByLabelText('URL principale')).toHaveValue('');
+  expect(api.fortress).not.toHaveBeenCalled();
+ });
  it('starts empty, unconsented and cannot issue an audit',()=>{
   setup();
   expect(screen.getByLabelText('Primary URL')).toHaveValue('');

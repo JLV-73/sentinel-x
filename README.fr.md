@@ -4,7 +4,39 @@
 
 Apache-2.0 · [English](README.md) · [Contribuer](CONTRIBUTING.md)
 
-**0.1.1 — GHSA Intelligence Edition.** P1-C est intégré dans main par la PR #9 : les avis GitHub reviewed, demandés explicitement pour une CVE locale, complètent CISA KEV, NVD/CVSS et FIRST EPSS. Ce numéro source et ces notes ne publient pas une Release ; consulter les [Releases GitHub](https://github.com/JLV-73/sentinel-x/releases) pour la disponibilité réelle. Le tag immuable v0.1.1 devient utilisable après publication. La stable antérieure v0.1.0 et les deux Alpha restent préservées. « Stable » ne signifie pas certifié.
+**0.1.1 — GHSA Intelligence Edition.** P1-C est intégré dans main par la PR #9 : les avis GitHub reviewed, demandés explicitement pour une CVE locale, complètent CISA KEV, NVD/CVSS et FIRST EPSS. Ce numéro source et ces notes ne publient pas une Release ; consulter les [Releases GitHub](https://github.com/JLV-73/sentinel-x/releases) pour la disponibilité réelle. Le démarrage rapide sélectionne le tag immuable v0.1.1 ; vérifier sa disponibilité sur GitHub. La stable antérieure v0.1.0 et les deux Alpha restent préservées. « Stable » ne signifie pas certifié.
+
+## Branche P2 expérimentale — candidat laboratoire non publié
+
+**v0.2.0-alpha.1 — NIGHTFALL Laboratory Edition** est un candidat proposé et non
+publié sur `p2/digital-fortress`, ni un tag de Release ni la version stable v0.1.1.
+DIGITAL FORTRESS est un laboratoire HTTPS local synthétique : le DNS et le pair public
+sont simulés. Aucun site réel n’est audité ; l’audit de sites réels est indisponible.
+L’API d’audit opérationnelle reste désactivée et renvoie HTTP 503 après ses garde-fous.
+Ce n’est ni une validation de production ni une certification de sécurité. La CA de
+test est réservée au laboratoire : **ne l’installe pas dans le magasin de confiance du
+système ou du navigateur**. N’utilise aucune cible réelle.
+
+Pour choisir explicitement cette option expérimentale, utilise PowerShell normal sous
+Windows, les prérequis et garde-fous de l’étape 1 du démarrage rapide et un **nouveau
+checkout isolé**. À l’étape 2, remplace uniquement la ligne de clonage stable par la
+ligne ci-dessous ; elle sélectionne une branche expérimentale mobile, pas un tag alpha.
+Effectue l’étape 3 dans ce même checkout, en t’arrêtant au premier échec. Puis, à la
+place de l’étape 4 stable, lance le laboratoire depuis la racine de ce checkout exact
+préparé (le dossier atteint à l’étape 2) :
+
+```powershell
+git clone --branch p2/digital-fortress https://github.com/JLV-73/sentinel-x.git
+```
+
+```powershell
+.\START_FORTRESS_STANDARD_LAB.cmd
+```
+
+Suis le [guide du laboratoire standard](docs/P2_STANDARD_LAB.md) pour l’URL locale,
+le consentement explicite limité au synthétique, les résultats et l’arrêt. Le démarrage
+rapide stable et la sauvegarde ci-dessous restent distincts ; ne réutilise jamais une
+installation opérationnelle ni ses données.
 
 | Version | Ce qui est installé |
 |---|---|
@@ -38,8 +70,8 @@ L’application tourne chez toi ; tu demandes les données des sources officiell
   correctifs originaux, dates, retraits, gravité et provenance du cache ; attribution CC-BY-4.0.
 - **NIGHTFALL :** cockpit FR/EN, contrôle des sources, FastAPI/SQLite et React/TypeScript.
 
-Aucune collecte au démarrage, surveillance autonome, analyse réseau, alerte ou score
-composite. NVD n'est pas collectée exhaustivement. Après CISA, utiliser la commande
+Dans la version stable, aucune collecte au démarrage, surveillance autonome, analyse
+réseau, alerte ou score composite. NVD n'est pas collectée exhaustivement. Après CISA, utiliser la commande
 NVD d'une fiche ou les commandes explicites NVD/EPSS du contrôle des sources.
 Les lectures GET restent locales.
 
@@ -74,9 +106,8 @@ de fond. Ouvrir une fiche/changer de langue ne lit que le cache local. Les donn�
 GitHub Advisory Database sont **CC-BY-4.0**, distinctes du code Apache-2.0 ; attribution
 et JSON d’origine restent disponibles. Voir le [contrat du pilote borné](docs/GHSA_PILOT_CONTRACT.md).
 
-**Choix d’installation :** le démarrage rapide sélectionne le tag immuable
-`v0.1.1`, utilisable uniquement après sa publication. Avant cette publication,
-la stable antérieure publiée `v0.1.0` (sans GHSA) reste disponible : remplacer
+**Choix d’installation :** le démarrage rapide stable sélectionne le tag immuable
+`v0.1.1`. Pour utiliser la stable antérieure publiée `v0.1.0` (sans GHSA), remplacer
 uniquement `--branch v0.1.1` par `--branch v0.1.0` à l’étape 2. Toujours choisir
 un **nouveau dossier isolé** et conserver tous les prérequis/garde-fous ; ne pas
 réutiliser une installation opérationnelle ni ses données.
@@ -108,8 +139,8 @@ Le positionnement explicite quitte le dossier initial de PowerShell pour ton dos
 
 ### 2. Télécharger les sources stables immuables
 
-**Disponibilité :** la commande ci-dessous sera utilisable **après publication du tag `v0.1.1`**.
-Vérifier d’abord les [Releases GitHub](https://github.com/JLV-73/sentinel-x/releases).
+**Disponibilité :** vérifier le tag et la Release stables dans les
+[Releases GitHub](https://github.com/JLV-73/sentinel-x/releases) avant le clonage.
 Un **HEAD détaché est normal** lors du clonage d’un tag de Release immuable.
 
 ```powershell
@@ -217,11 +248,10 @@ Une vulnérabilité utilise le [signalement privé](SECURITY.md), pas les Issues
 [Architecture](docs/ARCHITECTURE.md) · [Sources](docs/SOURCES.md) ·
 [Roadmap](docs/ROADMAP.md) · [Vérifications](docs/VERIFICATION.md) · [Changelog](CHANGELOG.md)
 
-Aucun scanner, exploit, inventaire/alerte automatique, IA autonome, cockpit hébergé
+Dans la version stable, aucun scanner, exploit, inventaire/alerte automatique, IA autonome, cockpit hébergé
 ou authentification multi-utilisateur. Les ajouts CISA ne comptent pas des attaques ;
 les échéances CISA ne sont pas des obligations françaises générales. Les signaux
-P1-A restent séparés, avec quotas/fraîcheur et limites documentées. Les phases
-futures ne sont pas livrées. Textes officiels et identifiants non traduits.
+P1-A restent séparés, avec quotas/fraîcheur et limites documentées. Les fonctionnalités uniquement prévues dans la feuille de route ne sont pas livrées. Textes officiels et identifiants non traduits.
 
 [Apache License 2.0](LICENSE) pour le code original JLV ; conserver [NOTICE](NOTICE).
 [Périmètre des droits](COPYRIGHT.md) et [notices tierces](THIRD_PARTY_NOTICES.md)
