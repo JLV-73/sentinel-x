@@ -4,7 +4,36 @@
 
 Apache-2.0 · [Français](README.fr.md) · [Contribute](CONTRIBUTING.md)
 
-**0.1.1 — GHSA Intelligence Edition.** P1-C is integrated into main by PR #9: targeted, explicitly requested GitHub reviewed advisories complement CISA KEV, NVD/CVSS and FIRST EPSS. A source version or these notes do not publish a Release; check [GitHub Releases](https://github.com/JLV-73/sentinel-x/releases) for actual availability. The immutable v0.1.1 tag becomes usable after publication. Earlier stable v0.1.0 and both Alpha releases remain preserved. “Stable” is not a security certification.
+**0.1.1 — GHSA Intelligence Edition.** P1-C is integrated into main by PR #9: targeted, explicitly requested GitHub reviewed advisories complement CISA KEV, NVD/CVSS and FIRST EPSS. A source version or these notes do not publish a Release; check [GitHub Releases](https://github.com/JLV-73/sentinel-x/releases) for actual availability. The quick start selects the immutable v0.1.1 tag; check GitHub for its availability. Earlier stable v0.1.0 and both Alpha releases remain preserved. “Stable” is not a security certification.
+
+## Experimental P2 branch — unpublished laboratory candidate
+
+**v0.2.0-alpha.1 — NIGHTFALL Laboratory Edition** is a proposed, unpublished
+candidate on `p2/digital-fortress`, not a release tag or the stable v0.1.1 release.
+DIGITAL FORTRESS is a synthetic local HTTPS laboratory: DNS and the public peer are
+simulated. No real site is audited; real-site auditing is unavailable. The operational
+audit API remains disabled and returns HTTP 503 after its guards. This is not a
+production validation or security certification. Its test CA is for the laboratory
+only: **do not install it in a system or browser trust store**. Do not use a real target.
+
+To opt in experimentally, use normal Windows PowerShell, the prerequisites and
+safeguards in quick-start step 1, and a **new isolated checkout**. In step 2, replace
+only the stable clone line with the following branch clone; it selects a moving
+experimental branch, not an alpha tag. Complete step 3 in that same checkout, stopping
+on any failure. Then, instead of stable step 4, run the laboratory launcher from the
+root of that exact prepared checkout (the location reached by step 2):
+
+```powershell
+git clone --branch p2/digital-fortress https://github.com/JLV-73/sentinel-x.git
+```
+
+```powershell
+.\START_FORTRESS_STANDARD_LAB.cmd
+```
+
+Follow [the standard laboratory guide](docs/P2_STANDARD_LAB.md) for its local URL,
+explicit synthetic-only consent, results and shutdown. The stable quick start and
+backup instructions below remain separate; never reuse an operational checkout or data.
 
 | Version | What you install |
 |---|---|
@@ -38,7 +67,7 @@ You run the application locally and request official-source data yourself.
   package ranges/fixes, dates, withdrawals, severity and cache provenance; CC-BY-4.0 attribution.
 - **NIGHTFALL:** FR/EN cockpit, source-control view, FastAPI/SQLite and React/TypeScript.
 
-No startup collection, autonomous monitoring, scanner, alerting or composite score.
+In the stable baseline: no startup collection, autonomous monitoring, scanner, alerting or composite score.
 NVD is not fetched exhaustively. After CISA sync, use a CVE detail's NVD control
 or the Intelligence Sources view's explicit NVD/EPSS controls; GET reads stay local.
 
@@ -72,10 +101,9 @@ only reads the local cache. GitHub Advisory Database data is **CC-BY-4.0**, sepa
 from this project’s Apache-2.0 code; attribution and the original JSON remain available.
 See [the bounded pilot contract](docs/GHSA_PILOT_CONTRACT.md).
 
-**Installation choice:** the quick start selects immutable `v0.1.1`, usable only
-after its publication. Before that publication, the earlier published stable
-`v0.1.0` (without GHSA) remains available: replace only `--branch v0.1.1` with
-`--branch v0.1.0` in step 2. Always use a **new isolated directory** and retain
+**Installation choice:** the stable quick start selects immutable `v0.1.1`.
+To use the earlier published stable `v0.1.0` (without GHSA), replace only
+`--branch v0.1.1` with `--branch v0.1.0` in step 2. Always use a **new isolated directory** and retain
 every prerequisite and safeguard; never reuse an operational checkout or its data.
 
 ## A. TRY SENTINEL X — QUICK START
@@ -105,8 +133,8 @@ This explicitly leaves any initial PowerShell directory and uses your user home.
 
 ### 2. Download the immutable stable source
 
-**Availability:** the command below is usable **after the `v0.1.1` tag is published**.
-Check [GitHub Releases](https://github.com/JLV-73/sentinel-x/releases) first.
+**Availability:** check [GitHub Releases](https://github.com/JLV-73/sentinel-x/releases)
+for the stable tag and release before cloning.
 A **detached HEAD is normal** when checking out an immutable release tag.
 
 ```powershell
@@ -212,11 +240,10 @@ Security findings use [private reporting](SECURITY.md), not ordinary public Issu
 [Architecture](docs/ARCHITECTURE.md) · [Sources](docs/SOURCES.md) ·
 [Roadmap](docs/ROADMAP.md) · [Verification](docs/VERIFICATION.md) · [Changelog](CHANGELOG.md)
 
-No scanner, exploit, automatic inventory/alert, autonomous AI, hosted dashboard or
+In the stable baseline, no scanner, exploit, automatic inventory/alert, autonomous AI, hosted dashboard or
 multi-user authentication is implemented. CISA additions are not attack counts;
 CISA due dates are not general French legal deadlines. P1-A signals remain separate,
-with quotas/freshness and documented prototype limits. Future phases are roadmap,
-not delivered features. Source texts/identifiers are not translated.
+with quotas/freshness and documented prototype limits. Features described only in the roadmap are not delivered. Source texts/identifiers are not translated.
 
 [Apache License 2.0](LICENSE) covers JLV-owned original code; retain [NOTICE](NOTICE).
 [Copyright scope](COPYRIGHT.md) and [third-party notices](THIRD_PARTY_NOTICES.md)

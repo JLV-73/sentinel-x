@@ -39,7 +39,7 @@ describe('poste de veille / vue d’ensemble', () => {
  it('affiche uniquement les métriques API et ouvre une CVE récente', async () => {
    render(<App/>);
    expect(await screen.findByRole('heading',{name:"Vue d'ensemble"})).toBeVisible();
-   expect(await screen.findByText('Données réelles')).toBeVisible();
+   expect(await screen.findByText('Catalogue CISA KEV : données réelles')).toBeVisible();
    expect(await screen.findByTestId('metric-total')).toHaveTextContent('2');
    expect(screen.getByTestId('metric-new')).toHaveTextContent('1');
    expect(screen.getByText(/ne déduit aucune vulnérabilité de vos actifs/i)).toBeVisible();

@@ -12,6 +12,7 @@ from .intelligence_api import install_routes
 from .triage import install_triage_route
 from .ghsa import GhsaService
 from .ghsa_api import install_ghsa_routes
+from .fortress_api import install_fortress_route
 
 ORIGINS = ("http://127.0.0.1:5177", "http://127.0.0.1:8007")
 
@@ -45,6 +46,7 @@ def create_app(db_path=None):
     install_ghsa_routes(app, app.state.ghsa, ORIGINS)
     install_routes(app, intelligence, ORIGINS)
     install_triage_route(app, service)
+    install_fortress_route(app, ORIGINS)
     app.add_middleware(CORSMiddleware, allow_origins=list(ORIGINS), allow_methods=["GET", "POST"],
                        allow_headers=["X-Sentinel-Request"], allow_credentials=False)
 
