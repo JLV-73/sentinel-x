@@ -213,3 +213,14 @@ it('renders only strictly validated route execution, never route paths',()=>{
  const bad=report.renderFortressReport({...input,route_execution:[{route_index:1,state:'<secret>'}]},'fr');
  expect(bad).not.toContain('&lt;secret&gt;');expect(bad).toContain('État d’exécution par route indisponible');
 });
+
+
+it('localizes finding titles without exposing internal identifiers',()=>{
+ const findings=['https_tls','csp','cookie_attributes','referrer_policy','permissions_policy'].map(id=>({id,status:'indeterminate',severity:'unknown'}));
+ for(const locale of ['fr','en'] as const){
+  const doc=new DOMParser().parseFromString(report.renderFortressReport({complete:false,requests_used:0,findings},locale),'text/html');
+  const titles=[...doc.querySelectorAll('article h3')].map(x=>x.textContent||'');
+  expect(titles).toHaveLength(5);
+  for(const title of titles)expect(title).not.toMatch(/https_tls|cookie_attributes|referrer_policy|permissions_policy/);
+ }
+});

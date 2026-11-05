@@ -179,6 +179,7 @@ def _audit_with_factory(payload, *, factory, language='en', _strict_single=False
         used = 0
         stopped = False
         http_status = None
+        failure_code = 'unknown'
         try:
             transport = factory(scope, max_requests=1 if _strict_single else 30,
                                        **({'strict_standard': True} if _strict_single else {}),
@@ -203,6 +204,12 @@ def _audit_with_factory(payload, *, factory, language='en', _strict_single=False
                         raise ValueError()
                     used = after
                     if _strict_single:
+                        if (type(observation) is dict and set(observation) == {'outcome', 'failure_code'} and observation.get('outcome') == 'error'
+                                and transport.blocked is True and after - before == 1):
+                            candidate = observation.get('failure_code')
+                            if type(candidate) is str and candidate in ('security_refused', 'incomplete', 'timeout', 'tls_or_transport'):
+                                failure_code = candidate
+                            raise ValueError()
                         # Accept facts only from a consistent, complete direct response.
                         # Redirects have their own non-conformant, no-facts path.
                         status = observation.get('status') if type(observation) is dict else None
@@ -212,8 +219,14 @@ def _audit_with_factory(payload, *, factory, language='en', _strict_single=False
                         redirect = (type(status) is int and status in (301, 302, 303, 307, 308) and
                                     observation.get('redirected') is True and observation.get('outcome') == 'indeterminate' and
                                     type(transport.blocked) is bool)
-                        if not (direct or redirect):
+                        refused = (type(status) is int and status == 403 and
+                                   observation.get('redirected') is False and observation.get('outcome') == 'http_refused' and
+                                   transport.blocked is True and after - before == 1)
+                        if not (direct or redirect or refused):
                             raise ValueError()
+                        failure_code = 'http_refused' if refused else 'none'
+                        if refused:
+                            http_status = status
                     if (_strict_single and type(observation) is dict and after - before == 1 and
                             observation.get('outcome') in ('ok', 'indeterminate') and
                             (transport.blocked is False or (observation.get('outcome') == 'indeterminate' and
@@ -222,6 +235,8 @@ def _audit_with_factory(payload, *, factory, language='en', _strict_single=False
                         http_status = observation['status']
                     if _strict_single and http_status in (301, 302, 303, 307, 308) and observation.get('redirected') is True:
                         state = 'redirected'
+                    elif _strict_single and refused:
+                        state = 'indeterminate'
                     elif transport.blocked is True:
                         state = 'blocked'
                     elif type(observation) is dict and observation.get('redirected') is True:
@@ -315,6 +330,7 @@ def _audit_with_factory(payload, *, factory, language='en', _strict_single=False
                                 ['Incomplete prototype: CORS and probes not performed; advisory assessment unavailable.'])}
         if _strict_single:
             result['http_status'] = http_status
+            result['failure_code'] = failure_code
             result['limitations'].append(
                 'Analyse des valeurs limitée à des catégories syntaxiques ; les valeurs brutes et l’efficacité des politiques ne sont pas établies.'
                 if language == 'fr' else

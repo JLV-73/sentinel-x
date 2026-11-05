@@ -17,10 +17,8 @@ import threading
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'backend'))
 sys.path.insert(0, str(ROOT / 'backend' / 'tests'))
-from app.fortress_service import _audit_with_factory
 from app.fortress_transport import SafeTransport
 from app.fortress_single_scope import prepare_single_scope
-from support_fortress_api import _project
 
 HOST = 'standard-lab.invalid'
 FAKE_IP = '93.184.216.34'  # identity simulated; never contacted
@@ -64,7 +62,10 @@ def _fixture_response(scenario):
 def run_scenario(scenario):
     if type(scenario) is not str or scenario not in SCENARIOS:
         raise ValueError('unknown scenario')
-    payload = prepare_single_scope('{"url":"https://standard-lab.invalid/","authorized":true,"method":"GET"}')
+    from app.fortress_service import _audit_single_with_factory
+    from app.fortress_standard_contract import project_strict
+    raw_json = '{"url":"https://standard-lab.invalid/","authorized":true,"method":"GET"}'
+    payload = prepare_single_scope(raw_json)
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
         if hasattr(socket, 'SO_EXCLUSIVEADDRUSE'):
             listener.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
@@ -117,11 +118,11 @@ def run_scenario(scenario):
         def factory(scope, **kwargs):
             return SafeTransport(scope, resolver=resolver, socket_factory=socket_factory, tls_context=client_context, timeout=2, deadline=3, **kwargs)
         try:
-            result = _audit_with_factory(payload, factory=factory)
+            result = _audit_single_with_factory(raw_json, factory=factory, language='en')
             worker.join(3)
             if worker.is_alive() or requests != [1]:
                 raise RuntimeError('fixture failed')
-            return _project(result, payload)
+            return project_strict(result, payload)
         finally:
             listener.close()
             worker.join(3)

@@ -107,6 +107,130 @@ def _project(result, payload):
             'limitations': ['Incomplete prototype.']}
 
 
+def project_strict(result, payload):
+    """Project the single-GET laboratory DTO; never use as a producer trust boundary.
+
+    Only exact service templates are accepted. Regeneration prevents arbitrary
+    producer text from reaching a report. Route and origin are always redacted.
+    """
+    _validate(payload, 'en')
+    if len(payload['routes']) != 1 or not payload['routes'][0]['url'].startswith('https://'):
+        raise ValueError()
+    keys = {'audit_id', 'mode', 'started_at', 'finished_at', 'scope', 'requests_used',
+            'complete', 'findings', 'limitations', 'route_execution', 'http_status', 'failure_code'}
+    if type(result) is not dict or set(result) != keys:
+        raise ValueError()
+    if (type(result['audit_id']) is not str or not re.fullmatch(r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}', result['audit_id'])
+            or type(result['mode']) is not str or result['mode'] != 'standard'
+            or result['complete'] is not False or type(result['requests_used']) is not int
+            or result['requests_used'] not in (0, 1)
+            or result['scope'] != {'origin': '[redacted]', 'paths': ['[redacted route]']}):
+        raise ValueError()
+    times = []
+    for key in ('started_at', 'finished_at'):
+        value = result[key]
+        if type(value) is not str:
+            raise ValueError()
+        parsed = datetime.fromisoformat(value)
+        if parsed.tzinfo is None or parsed.utcoffset() is None or parsed.isoformat() != value:
+            raise ValueError()
+        times.append(parsed)
+    if times[1] < times[0]:
+        raise ValueError()
+    date = times[0].date().isoformat()
+    limitations = {
+        'en': ['Incomplete prototype: CORS and probes not performed; advisory assessment unavailable.',
+               'Value analysis is limited to syntax categories; raw values and policy effectiveness are not established.'],
+        'fr': ['Prototype incomplet : contrôles CORS et sondes non effectués ; aucune évaluation des avis.',
+               'Analyse des valeurs limitée à des catégories syntaxiques ; les valeurs brutes et l’efficacité des politiques ne sont pas établies.'],
+    }
+    language = next ( (lang for lang, text in limitations.items() if result['limitations'] == text), None)
+    if language is None or type(result['limitations']) is not list:
+        raise ValueError()
+    execution = result['route_execution']
+    if (type(execution) is not list or len(execution) != 1 or type(execution[0]) is not dict
+            or set(execution[0]) != {'route_index', 'state'} or type(execution[0]['route_index']) is not int
+            or execution[0]['route_index'] != 1 or type(execution[0]['state']) is not str
+            or execution[0]['state'] not in ('not_started', 'completed', 'indeterminate', 'redirected', 'blocked')):
+        raise ValueError()
+    state = execution[0]['state']
+    status = result['http_status']
+    failure_code = result['failure_code']
+    if type(failure_code) is not str or failure_code not in ('none', 'http_refused', 'security_refused', 'incomplete', 'timeout', 'tls_or_transport', 'unknown'):
+        raise ValueError()
+    if ((state in ('completed', 'redirected') and failure_code != 'none')
+            or (failure_code == 'none' and state not in ('completed', 'redirected'))
+            or (failure_code == 'http_refused' and not (state == 'indeterminate' and status == 403))
+            or (status == 403 and failure_code != 'http_refused')
+            or (failure_code in ('security_refused', 'incomplete', 'timeout', 'tls_or_transport') and
+                not (state == 'blocked' and status is None and result['requests_used'] == 1))
+            or (failure_code == 'unknown' and (status is not None or state not in ('blocked', 'indeterminate', 'not_started')))):
+        raise ValueError()
+    if status is not None and (type(status) is not int or not 100 <= status <= 599):
+        raise ValueError()
+    if ((state == 'not_started' and (result['requests_used'] != 0 or status is not None))
+            or (state in ('completed', 'redirected') and result['requests_used'] != 1)
+            or (state == 'completed' and (status is None or not 200 <= status < 300 or status == 206))
+            or (state == 'redirected' and status not in (301, 302, 303, 307, 308))
+            or (state == 'indeterminate' and status is not None and
+                (status != 403 or result['requests_used'] != 1))
+            or (state == 'blocked' and status is not None and (result['requests_used'] != 1 or status != 403))):
+        raise ValueError()
+    findings = result['findings']
+    if type(findings) is not list or len(findings) != len(NAMES):
+        raise ValueError()
+    projected = []
+    for index, item in enumerate(findings):
+        name = NAMES[index]
+        if type(item) is not dict or type(item.get('route_index')) is not int or item['route_index'] != 1:
+            raise ValueError()
+        code = item.get('evidence_code')
+        if type(code) is not str or item.get('date') != date:
+            raise ValueError()
+        def template(facts):
+            return evaluate_findings(facts, route='[redacted route]', method='GET', date=date, language=language)[index]
+        candidates = [('indeterminate', template({}))]
+        if name == 'https_tls':
+            candidates.append(('tls_verified', template({name: {'complete': True, 'observed': True}})))
+        elif name in HEADERS_CHECKS:
+            absent = template({name: {'complete': True, 'observed': False}})
+            candidates.append(('header_absent', absent))
+            invalid = dict(absent)
+            invalid['evidence'] = ('Valeur vide ou catégorie invalide observée.' if language == 'fr' else 'Empty value or invalid category observed.')
+            candidates.append(('header_invalid', invalid))
+            if name == 'x_content_type_options':
+                candidates.append(('header_valid', template({name: {'complete': True, 'observed': True}})))
+            else:
+                syntax = template({})
+                syntax['evidence'] = ('Syntaxe limitée reconnue ; efficacité non établie.' if language == 'fr' else 'Limited syntax recognized; effectiveness not established.')
+                syntax['reason'] = ('La protection reste indéterminée.' if language == 'fr' else 'Protection remains indeterminate.')
+                candidates.append(('header_syntax_recognized', syntax))
+        elif name == 'cookie_attributes':
+            positive = template({name: {'complete': True, 'observed': False, 'cookie_count': 1}})
+            positive['evidence'] = ('Attributs recommandés observés sur les cookies examinés.' if language == 'fr' else 'Observed recommended attributes on examined cookies.')
+            positive['reason'] = ('Observation limitée ; pertinence indéterminée, sans certification.' if language == 'fr' else 'Limited observation; applicability is indeterminate, not a certification.')
+            candidates.append(('cookie_attributes_present', positive))
+            evidence = item.get('evidence')
+            if type(evidence) is str:
+                match = re.search(r'(?: Cookie count: | Nombre de cookies : )([1-9][0-9]{0,4})\.', evidence)
+                if match and int(match.group(1)) <= 10000:
+                    candidates.append(('cookie_attributes_missing', template({name: {'complete': True, 'observed': True, 'cookie_count': int(match.group(1))}})))
+        base = {k: v for k, v in item.items() if k not in ('route_index', 'evidence_code')}
+        matched = next((candidate for candidate_code, candidate in candidates if code == candidate_code and base == candidate), None)
+        if matched is None:
+            raise ValueError()
+        if state != 'completed':
+            matched, code = template({}), 'indeterminate'
+        safe = dict(matched, route_index=1, evidence_code=code)
+        safe['reference'] = 'Not provided.'
+        projected.append(safe)
+    return {'audit_id': 'withheld', 'mode': 'standard', 'started_at': times[0].isoformat(),
+            'finished_at': times[1].isoformat(), 'scope': {'origin': '[redacted]', 'paths': ['[redacted route]']},
+            'requests_used': result['requests_used'], 'complete': False, 'findings': projected,
+            'route_execution': [{'route_index': 1, 'state': state}], 'limitations': list(limitations[language]),
+            'http_status': status, 'failure_code': failure_code}
+
+
 def _object(pairs):
     result = {}
     for key, value in pairs:

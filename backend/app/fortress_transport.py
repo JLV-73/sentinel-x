@@ -14,6 +14,10 @@ from urllib.parse import urlsplit, urljoin, urlencode
 class TransportError(ValueError):
     """A request was refused or did not complete safely."""
 
+    def __init__(self, message, code='security_refused'):
+        super().__init__(message)
+        self.code = code
+
 
 # A timed-out OS resolver cannot be cancelled. At most one may remain in flight
 # per process; while it is stuck, all other resolutions fail closed immediately.
@@ -46,10 +50,10 @@ def _resolve_bounded(resolver, host, port, remaining):
         raise
     if not done.wait(max(0, dns_end - time.monotonic())):
         cancelled.set()
-        raise TransportError('DNS deadline exceeded')
+        raise TransportError('DNS deadline exceeded', 'timeout')
     remaining()
     if not result or not result[0][0]:
-        raise TransportError('DNS failed')
+        raise TransportError('DNS failed', 'tls_or_transport')
     return result[0][1]
 
 
@@ -83,6 +87,8 @@ class _StrictHeaderStream:
             if byte == b'\n':
                 break
         line = bytes(line)
+        if not line or not line.endswith(b'\n'):
+            raise TransportError('incomplete headers', 'incomplete')
         self.total += len(line)
         if (self.total > 131072 or not line.endswith(b'\r\n') or
             b'\r' in line[:-2] or b'\n' in line[:-2]):
@@ -149,6 +155,7 @@ class Response:
     baseline_second: bool = False
     headers_complete: bool = True
     tls_version: str | None = None
+    http_refused: bool = False
 
 
 _SECURITY_HEADERS = {
@@ -452,7 +459,7 @@ class SafeTransport:
     def _remaining(self):
         left = self.deadline - (time.monotonic() - self.started)
         if left <= 0:
-            raise TransportError('deadline exceeded')
+            raise TransportError('deadline exceeded', 'timeout')
         return min(self.timeout, left)
 
     @_halt_on_uncertainty
@@ -474,6 +481,8 @@ class SafeTransport:
             response = self.request(method, url)
             facts = dict(zip(('count', 'missing_secure', 'missing_httponly', 'missing_samesite', 'indeterminate'), response.cookies))
             result = {'outcome': 'blocked' if response.blocked else 'indeterminate' if response.indeterminate else 'ok', 'cookies': facts}
+            if self._strict_standard and response.http_refused:
+                result['outcome'] = 'http_refused'
             redirected = self._strict_standard and response.status in (301, 302, 303, 307, 308)
             if self._strict_standard:
                 result['status'] = response.status
@@ -491,8 +500,12 @@ class SafeTransport:
             if self.count - before > 1:
                 result['redirected'] = True
             return result
-        except Exception:
-            pass
+        except Exception as exc:
+            if self._strict_standard:
+                code = exc.code if isinstance(exc, TransportError) else 'unknown'
+                if code not in ('security_refused', 'incomplete', 'timeout', 'tls_or_transport'):
+                    code = 'unknown'
+                return {'outcome': 'error', 'failure_code': code}
         return {'outcome': 'error'}
 
     @_halt_on_uncertainty
@@ -642,12 +655,13 @@ class SafeTransport:
                 result = self._request_locked(method, url, headers)
                 self._remaining()
                 return result
-            except Exception:
+            except Exception as exc:
                 # Do not retain a completed raw response in the error traceback.
                 result = None
                 # Even a pre-network rejection ends this audit's request stream.
                 self.blocked = True
-            raise TransportError('request failed')
+                code = exc.code if isinstance(exc, TransportError) else 'unknown'
+            raise TransportError('request failed', code) from None
 
     def _request_locked(self, method: str, url: str, headers: dict[str, str] | None = None, probe=None) -> Response:
         if self.blocked:
@@ -735,6 +749,25 @@ class SafeTransport:
                     # Content-Length is present; never derive facts from it.
                     if response.status == 204 and checked_sock.stream.content_length:
                         raise TransportError('invalid 204 framing')
+                    if self._strict_standard and response.status == 403:
+                        # Keep the stop-on-refusal policy, but only disclose the
+                        # status after the whole bounded HTTP frame is validated.
+                        if response.msg.defects or response.getheader('Content-Encoding', 'identity').lower() not in ('', 'identity'):
+                            raise TransportError('invalid refused response')
+                        size = 0
+                        while True:
+                            sock.settimeout(self._remaining())
+                            chunk = response.read1(min(65536, self.max_bytes + 1 - size))
+                            self._remaining()
+                            if not chunk:
+                                if response.length not in (None, 0):
+                                    raise TransportError('incomplete response', 'incomplete')
+                                break
+                            size += len(chunk)
+                            if size > self.max_bytes:
+                                raise TransportError('response too large')
+                        self.blocked = True
+                        return Response(response.status, (), b'', '', True, http_refused=True)
                     if response.status in (401, 403, 429) or any(
                         k.lower() in ('cf-mitigated', 'x-sucuri-block', 'retry-after') for k, _ in raw_headers
                     ):
@@ -743,7 +776,7 @@ class SafeTransport:
                     if response.status == 206 or not (200 <= response.status < 300 or response.status in (301, 302, 303, 307, 308)):
                         self.blocked = True
                         return Response(response.status, (), b'', '', False, indeterminate=True)
-                    if response.status in (301, 302, 303, 307, 308) and not response.getheader('Location'):
+                    if not self._strict_standard and response.status in (301, 302, 303, 307, 308) and not response.getheader('Location'):
                         self.blocked = True
                         return Response(response.status, (), b'', '', False, indeterminate=True)
                     if response.getheader('Content-Encoding', 'identity').lower() not in ('', 'identity'):
@@ -757,7 +790,7 @@ class SafeTransport:
                         self._remaining()
                         if not chunk:
                             if response.length not in (None, 0):
-                                raise TransportError('incomplete response')
+                                raise TransportError('incomplete response', 'incomplete')
                             break
                         scan = carry + chunk.lower()
                         if any(signal in scan for signal in signatures):
@@ -797,11 +830,17 @@ class SafeTransport:
             except TransportError:
                 self.blocked = True
                 raise
+            except (TimeoutError, socket.timeout):
+                self.blocked = True
+                raise TransportError('network timeout', 'timeout') from None
+            except http.client.IncompleteRead:
+                self.blocked = True
+                raise TransportError('incomplete response', 'incomplete') from None
             except (OSError, ValueError, http.client.HTTPException, ssl.SSLError):
                 self.blocked = True
                 network_failure = True
             if network_failure:
-                raise TransportError('network request failed')
+                raise TransportError('network request failed', 'tls_or_transport')
             if self._strict_standard or probe is not None or blocked or status not in (301, 302, 303, 307, 308) or not location:
                 return result
             # urljoin is used only before fully revalidating the exact allowlist.
