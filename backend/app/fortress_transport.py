@@ -344,6 +344,7 @@ def _halt_on_uncertainty(method):
                 return {'outcome': 'error'}
             try:
                 result = method(self, *args, **kwargs)
+                self._remaining()
             except Exception:
                 self.blocked = True
                 return {'outcome': 'error'}
@@ -362,9 +363,31 @@ class SafeTransport:
     subject to OS scheduling and blocking system call timeout granularity.
     """
     def __init__(self, scope: Scope, *, resolver=socket.getaddrinfo, socket_factory=socket.socket,
-                 tls_context=None, timeout=5.0, deadline=45.0, max_bytes=262144, max_requests=30, approved_probes=None, scoped_probes=None, cors_routes=None, allowed_methods=None):
+                 tls_context=None, timeout=5.0, deadline=45.0, max_bytes=262144, max_requests=30, approved_probes=None, scoped_probes=None, cors_routes=None, allowed_methods=None, strict_standard=False):
         if not isinstance(scope, Scope) or not (0 < timeout <= 10 and 0 < deadline <= 45 and 0 < max_bytes <= 262144 and 0 < max_requests <= 30):
             raise TransportError('invalid transport configuration')
+        if type(strict_standard) is not bool:
+            raise TransportError('invalid standard mode')
+        if strict_standard:
+            if (len(scope.routes) != 1 or scope.origin[0] != 'https' or
+                approved_probes is not None or scoped_probes is not None or cors_routes is not None):
+                raise TransportError('invalid standard scope')
+            route = next(iter(scope.routes))
+            parsed_origin, canonical, _ = _parse(route)
+            if parsed_origin != scope.origin or canonical != route:
+                raise TransportError('invalid standard scope')
+            try:
+                ipaddress.ip_address(scope.origin[1])
+            except ValueError:
+                pass
+            else:
+                raise TransportError('DNS hostname required')
+            policy = frozenset({(route, 'GET')})
+            if allowed_methods is not None and allowed_methods != policy:
+                raise TransportError('invalid standard policy')
+            allowed_methods = policy
+            max_requests = 1
+        self._strict_standard = strict_standard
         self.scope, self.resolver, self.socket_factory = scope, resolver, socket_factory
         # Trusted service supplies an immutable exact route/method policy. Legacy
         # internal callers omit it; that compatibility is not API authorization.
@@ -451,8 +474,14 @@ class SafeTransport:
             response = self.request(method, url)
             facts = dict(zip(('count', 'missing_secure', 'missing_httponly', 'missing_samesite', 'indeterminate'), response.cookies))
             result = {'outcome': 'blocked' if response.blocked else 'indeterminate' if response.indeterminate else 'ok', 'cookies': facts}
+            redirected = self._strict_standard and response.status in (301, 302, 303, 307, 308)
+            if self._strict_standard:
+                result['status'] = response.status
+                result['redirected'] = bool(redirected)
+                if redirected and not response.blocked:
+                    result['outcome'] = 'indeterminate'
             if include_security_headers:
-                complete = not response.blocked and not response.indeterminate and response.headers_complete and self.count - before == 1
+                complete = not redirected and not response.blocked and not response.indeterminate and response.headers_complete and self.count - before == 1
                 result['security_headers'] = _header_facts(response.headers, complete)
                 result['header_value_facts'] = _header_value_facts(response.headers, complete)
                 if (not response.blocked and not response.indeterminate and response.headers_complete and
@@ -473,8 +502,14 @@ class SafeTransport:
         before = self.count
         response = self.request(method, url)
         outcome = 'blocked' if response.blocked else 'indeterminate' if response.indeterminate else 'ok'
+        redirected = self._strict_standard and response.status in (301, 302, 303, 307, 308)
+        if redirected and outcome == 'ok':
+            outcome = 'indeterminate'
         complete = (outcome == 'ok' and response.headers_complete and self.count - before == 1)
-        return {'outcome': outcome, 'header_value_facts': header_value_facts(response.headers, complete)}
+        result = {'outcome': outcome, 'header_value_facts': header_value_facts(response.headers, complete)}
+        if self._strict_standard:
+            result.update(status=response.status, redirected=bool(redirected))
+        return result
 
     @_halt_on_uncertainty
     def observe_scoped_baseline(self, url: str, key: str, kind: str):
@@ -604,8 +639,12 @@ class SafeTransport:
     def request(self, method: str, url: str, headers: dict[str, str] | None = None) -> Response:
         with self._request_lock:
             try:
-                return self._request_locked(method, url, headers)
+                result = self._request_locked(method, url, headers)
+                self._remaining()
+                return result
             except Exception:
+                # Do not retain a completed raw response in the error traceback.
+                result = None
                 # Even a pre-network rejection ends this audit's request stream.
                 self.blocked = True
             raise TransportError('request failed')
@@ -763,7 +802,7 @@ class SafeTransport:
                 network_failure = True
             if network_failure:
                 raise TransportError('network request failed')
-            if probe is not None or blocked or status not in (301, 302, 303, 307, 308) or not location:
+            if self._strict_standard or probe is not None or blocked or status not in (301, 302, 303, 307, 308) or not location:
                 return result
             # urljoin is used only before fully revalidating the exact allowlist.
             current = urljoin(current, location)

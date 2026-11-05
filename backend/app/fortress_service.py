@@ -149,9 +149,23 @@ def _audit(payload, *, language='en'):
     return _audit_with_factory(payload, language=language, factory=_SafeTransport)
 
 
-def _audit_with_factory(payload, *, factory, language='en'):
+def _audit_single_with_factory(raw_json, *, factory, language='en'):
+    """Experimental trusted-Python seam only, never mount or accept a factory over HTTP.
+
+    Injectable network dependencies are exclusively for owned tests. The default
+    production API remains disabled. Synchronous timeouts are cooperative and do
+    not cancel blocked DNS/native calls: this is not qualified for Internet use.
+    """
+    from .fortress_single_scope import prepare_single_scope
+    payload = prepare_single_scope(raw_json)
+    return _audit_with_factory(payload, factory=factory, language=language, _strict_single=True)
+
+
+def _audit_with_factory(payload, *, factory, language='en', _strict_single=False):
     """Trusted in-process lab seam; factory must never come from a request."""
     scope, routes, level = _validate(payload, language)
+    if _strict_single and len(routes) != 1:
+        raise AuditError('invalid audit request') from None
     if level == 'deep':
         raise AuditError('deep mode unavailable') from None
     if not _AUDIT_LOCK.acquire(blocking=False):
@@ -164,14 +178,18 @@ def _audit_with_factory(payload, *, factory, language='en'):
         route_execution = []
         used = 0
         stopped = False
+        http_status = None
         try:
-            transport = factory(scope, max_requests=30,
+            transport = factory(scope, max_requests=1 if _strict_single else 30,
+                                       **({'strict_standard': True} if _strict_single else {}),
                                        allowed_methods=frozenset((_parse(route)[1], 'GET') for route in routes))
         except Exception:
             transport = None
             stopped = True
         for route_index, route in enumerate(routes, 1):
             facts = {}
+            x_content_code = None
+            header_codes = {}
             state = 'not_started'
             if not stopped:
                 try:
@@ -181,10 +199,30 @@ def _audit_with_factory(payload, *, factory, language='en'):
                     state = 'indeterminate'
                     observation = transport.observe_headers('GET', route)
                     after = transport.count
-                    if type(after) is not int or not before < after <= 30:
+                    if type(after) is not int or not before < after <= (1 if _strict_single else 30):
                         raise ValueError()
                     used = after
-                    if transport.blocked is True:
+                    if _strict_single:
+                        # Accept facts only from a consistent, complete direct response.
+                        # Redirects have their own non-conformant, no-facts path.
+                        status = observation.get('status') if type(observation) is dict else None
+                        direct = (type(status) is int and 200 <= status < 300 and status != 206 and
+                                  observation.get('redirected') is False and observation.get('outcome') == 'ok' and
+                                  transport.blocked is False)
+                        redirect = (type(status) is int and status in (301, 302, 303, 307, 308) and
+                                    observation.get('redirected') is True and observation.get('outcome') == 'indeterminate' and
+                                    type(transport.blocked) is bool)
+                        if not (direct or redirect):
+                            raise ValueError()
+                    if (_strict_single and type(observation) is dict and after - before == 1 and
+                            observation.get('outcome') in ('ok', 'indeterminate') and
+                            (transport.blocked is False or (observation.get('outcome') == 'indeterminate' and
+                             observation.get('redirected') is True and observation.get('status') in (301, 302, 303, 307, 308))) and
+                            type(observation.get('status')) is int and 100 <= observation['status'] <= 599):
+                        http_status = observation['status']
+                    if _strict_single and http_status in (301, 302, 303, 307, 308) and observation.get('redirected') is True:
+                        state = 'redirected'
+                    elif transport.blocked is True:
                         state = 'blocked'
                     elif type(observation) is dict and observation.get('redirected') is True:
                         state = 'redirected'
@@ -208,6 +246,28 @@ def _audit_with_factory(payload, *, factory, language='en'):
                             for name in ('hsts', 'csp', 'x_content_type_options', 'referrer_policy', 'permissions_policy'):
                                 if (name != 'hsts' or scope.origin[0] == 'https') and type(headers.get(name)) is str and headers[name] == 'absent':
                                     facts[name] = {'complete': True, 'observed': False}
+                                elif _strict_single and (name != 'hsts' or scope.origin[0] == 'https') and type(headers.get(name)) is str:
+                                    if headers[name] == 'invalid':
+                                        facts[name] = {'complete': True, 'observed': False}
+                                        header_codes[name] = 'header_invalid'
+                                    elif headers[name] == 'present':
+                                        header_codes[name] = 'header_syntax_recognized'
+                        if _strict_single and observation.get('redirected', False) is False:
+                            derived = observation.get('header_value_facts')
+                            # Both classifiers describe the same header. A missing,
+                            # malformed or incompatible pair cannot establish either
+                            # presence or absence, even if one looks convincing.
+                            presence = headers.get('x_content_type_options') if type(headers) is dict else None
+                            value = derived.get('x_content_type_options') if type(derived) is dict else None
+                            facts.pop('x_content_type_options', None)
+                            header_codes.pop('x_content_type_options', None)
+                            if type(presence) is str and type(value) is str:
+                                if (presence, value) in (('present', 'recognized_nosniff'),
+                                                         ('unknown', 'other_token'),
+                                                         ('invalid', 'invalid'), ('absent', 'absent')):
+                                    facts['x_content_type_options'] = {'complete': True, 'observed': value == 'recognized_nosniff'}
+                                    x_content_code = ('header_valid' if value == 'recognized_nosniff' else
+                                                      'header_absent' if value == 'absent' else 'header_invalid')
                 except Exception:
                     # No exception text, raw observation, or target data may escape.
                     try:
@@ -233,13 +293,33 @@ def _audit_with_factory(payload, *, factory, language='en'):
                                             else 'cookie_attributes_missing' if finding['id'] == 'cookie_attributes' and finding['status'] == 'attention'
                                             else 'header_absent' if finding['id'] in facts and finding['status'] == 'attention'
                                             else 'indeterminate')
+                if finding['id'] == 'x_content_type_options' and x_content_code is not None:
+                    finding['evidence_code'] = x_content_code
+                elif _strict_single and finding['id'] in header_codes:
+                    finding['evidence_code'] = header_codes[finding['id']]
+                if _strict_single and finding['evidence_code'] in ('header_syntax_recognized', 'header_invalid'):
+                    if finding['evidence_code'] == 'header_syntax_recognized':
+                        finding['evidence'] = ('Syntaxe limitée reconnue ; efficacité non établie.' if language == 'fr' else
+                                               'Limited syntax recognized; effectiveness not established.')
+                        finding['reason'] = ('La protection reste indéterminée.' if language == 'fr' else
+                                             'Protection remains indeterminate.')
+                    else:
+                        finding['evidence'] = ('Valeur vide ou catégorie invalide observée.' if language == 'fr' else
+                                               'Empty value or invalid category observed.')
             findings.extend(route_findings)
         finished = datetime.now(timezone.utc)
-        return {'audit_id': str(uuid4()), 'mode': level, 'started_at': started.isoformat(),
+        result = {'audit_id': str(uuid4()), 'mode': level, 'started_at': started.isoformat(),
                 'finished_at': finished.isoformat(), 'scope': {'origin': '[redacted]', 'paths': ['[redacted route]'] * len(routes)},
                 'requests_used': used, 'complete': False, 'findings': findings, 'route_execution': route_execution,
                 'limitations': (['Prototype incomplet : contrôles CORS et sondes non effectués ; aucune évaluation des avis.'] if language == 'fr' else
                                 ['Incomplete prototype: CORS and probes not performed; advisory assessment unavailable.'])}
+        if _strict_single:
+            result['http_status'] = http_status
+            result['limitations'].append(
+                'Analyse des valeurs limitée à des catégories syntaxiques ; les valeurs brutes et l’efficacité des politiques ne sont pas établies.'
+                if language == 'fr' else
+                'Value analysis is limited to syntax categories; raw values and policy effectiveness are not established.')
+        return result
     finally:
         previous = sys.exception()
         try:

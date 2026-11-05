@@ -165,6 +165,8 @@ def evaluate_findings(facts, *, route, method, date, language='en'):
                              'confirmed': 'The specified non-destructive behavior was observed.'}[status]
         if name in ('https_tls', 'hsts', 'csp', 'x_content_type_options', 'referrer_policy', 'permissions_policy') and status == 'conformant':
             finding['reason'] = 'The specified protection was observed in this check.'
+        elif name == 'cookie_attributes' and status == 'conformant':
+            finding['reason'] = 'Limited observation; applicability is indeterminate, not a certification.'
         results.append(finding)
     for item in results:
         item['evidence'] += ' Method: ' + safe_method + '; date: ' + safe_date + '.'
@@ -208,6 +210,7 @@ def _translate_fr(results):
         'The observation warrants investigation but does not prove exploitation.': 'L’observation justifie une investigation mais ne prouve pas une exploitation.',
         'The specified non-destructive behavior was observed.': 'Le comportement non destructif considéré a été observé.',
         'The specified protection was observed in this check.': 'La protection considérée a été observée lors de ce contrôle.',
+        'Limited observation; applicability is indeterminate, not a certification.': 'Observation limitée ; pertinence indéterminée, sans certification.',
     }
     for item in results:
         for key in ('reason', 'limitations', 'preconditions', 'recommendation'):
