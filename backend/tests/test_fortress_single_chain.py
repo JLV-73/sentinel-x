@@ -6,6 +6,7 @@ import socket
 
 import pytest
 from fastapi.testclient import TestClient
+from app import fortress_service, fortress_standard_contract
 from app.fortress_single_scope import prepare_single_scope, SingleScopeError
 from support_fortress_api import make_qualification_app
 
@@ -47,21 +48,24 @@ def test_contract_qualification_uses_real_fixture(monkeypatch):
         fixture_connections.append(address)
         return original_fixture_connect(sock, address)
     monkeypatch.setattr(lab.FixtureSocket, 'connect', fixture_connect)
-    original_audit = lab._audit_with_factory
+    original_audit = fortress_service._audit_single_with_factory
     captured = []
-    def capture(payload, **kwargs):
-        result = original_audit(payload, **kwargs)
-        captured.append((payload, result))
+    def capture(raw, **kwargs):
+        result = original_audit(raw, **kwargs)
+        captured.append((raw, result))
         return result
-    monkeypatch.setattr(lab, '_audit_with_factory', capture)
+    monkeypatch.setattr(fortress_service, '_audit_single_with_factory', capture)
+    # Exercise the real strict projector through the isolated legacy HTTP adapter.
+    monkeypatch.setattr(fortress_standard_contract, '_project', fortress_standard_contract.project_strict)
     payload = prepare_single_scope(RAW)
     statuses = []
     for scenario in ('positive', 'negative', 'indeterminate'):
         def consumer(received):
             assert received == payload
             lab.run_scenario(scenario)
-            observed_payload, result = captured.pop()
-            assert observed_payload == received
+            observed_raw, result = captured.pop()
+            assert observed_raw == RAW
+            assert prepare_single_scope(observed_raw) == received
             return result
         with TestClient(make_qualification_app(consumer), base_url='http://test.local') as client:
             response = client.post('/api/fortress/audit', headers=HEADERS, json=payload)

@@ -11,7 +11,7 @@ The fragment bound is independent.
 """
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 import anyio
 from app.fortress_service import _validate, AuditError
 from app.fortress_checks import evaluate_findings
@@ -132,7 +132,7 @@ def project_strict(result, payload):
         if type(value) is not str:
             raise ValueError()
         parsed = datetime.fromisoformat(value)
-        if parsed.tzinfo is None or parsed.utcoffset() is None or parsed.isoformat() != value:
+        if parsed.tzinfo is None or parsed.utcoffset() != timedelta(0) or parsed.isoformat() != value:
             raise ValueError()
         times.append(parsed)
     if times[1] < times[0]:
