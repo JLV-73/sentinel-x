@@ -1,6 +1,6 @@
-# v0.2.0 — proposed notes, local candidate
+# v0.2.0 — source notes
 
-**Documentation draft: no tag or publication performed.** `VERSION` and frontend package metadata identify 0.2.0. Release status and distribution remain subject to decision; this text asserts no current remote availability.
+`VERSION` and frontend package metadata identify 0.2.0. This document does not establish release status or remote availability; consult [GitHub Releases](https://github.com/JLV-73/sentinel-x/releases). At the 2026-11-07 preflight, these notes described a local candidate and no v0.2.0 tag or Release had been found.
 
 ## Scope and maturity
 
@@ -14,11 +14,11 @@
 
 Details and use: [local guide](DIGITAL_FORTRESS_LOCAL.md), [import contract](diagnostic-import-schema.md), [GHSA contract](GHSA_PILOT_CONTRACT.md). Demo and import do not contact the Internet; installation and official-source collection are separate and may need it. No certification, production readiness or suitability for public exposure is promised. Existing safeguards remain necessary; no user target was contacted to prepare these notes.
 
-## Verification and proposed publication path
+## Verification and historical preparation path
 
 These notes are based on static source and document review; they assert no newly executed tests, browser acceptance or source collection. Historical evidence is not acceptance testing of this candidate.
 
-Proposed sequence, not to be executed without separate authorization:
+Sequence proposed during candidate preparation; each action requires its own authorization:
 1. Review the exact scope, licenses and excluded data; obtain independent validation and suitable acceptance checks in an isolated environment without enabling Internet analysis.
 2. Review version metadata and decide the exact commit/tree and pre-release versus stable status separately; resolve discrepancies before deciding. Do not move existing tags or touch operational copies and data.
 3. Only after explicit GO, prepare an immutable tag and source-only Release; explicitly decide its status and any distribution. Exclude binaries, databases, backups, secrets and private evidence. Retain LICENSE, NOTICE and third-party rights.
