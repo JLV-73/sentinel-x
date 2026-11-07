@@ -4,6 +4,104 @@
 
 Apache-2.0 · [English](README.md) · [Contribuer](CONTRIBUTING.md)
 
+## Candidat local v0.2.0 — non publié
+
+Ce clone prépare une v0.2.0 **proposée**, sans Release ni tag créés ici.
+`VERSION` et les métadonnées du paquet frontend indiquent **0.2.0**. L'installation
+du candidat ci-dessous est distincte du tableau et du démarrage historiques. Aucune
+disponibilité distante actuelle ni publication n'est affirmée ici.
+
+| Domaine | État dans les sources du candidat | Limite |
+|---|---|---|
+| NIGHTFALL / triage | Implémentation locale existante | Collectes explicites ; voir les contrats des sources ci-dessous. |
+| GHSA | Pilote borné | Une CVE demandée ; couverture non exhaustive. |
+| Fixture DIGITAL FORTRESS | Démonstration locale expérimentale | HTTPS en boucle locale et DNS/pair simulés, pas un audit Internet. |
+| Import / rapport | Import JSON local et export HTML expérimentaux | Observations déclarées, ni authentifiées ni vérifiées indépendamment. |
+| Analyse de site Internet | Désactivée | URL et autorisation ne l'activent pas ; protections non qualifiées. |
+
+Voir le [guide local DIGITAL FORTRESS](docs/DIGITAL_FORTRESS_LOCAL.md), les
+notes proposées [FR](docs/RELEASE_v0.2.0.fr.md) / [EN](docs/RELEASE_v0.2.0.md).
+« Implémenté » décrit les sources, sans prétendre à une recette d'exécution récente,
+une certification de sécurité ou une aptitude à la production.
+
+## Installer le candidat local v0.2.0 (Windows)
+
+Utiliser un nouveau dossier isolé accessible en écriture, jamais une installation
+opérationnelle ni ses données. Ouvrir PowerShell normalement, sans administrateur.
+Prérequis : Windows 11, Git, Python 3.11, Node.js 24 et npm ; vérifier
+`git --version`, `py -3.11 --version`, `node --version` et `npm.cmd --version`.
+Arrêter au premier échec. Les commandes suivantes sont pour PowerShell, pas cmd.exe
+ni Git Bash.
+
+1. **Choisir une source**, puis ouvrir PowerShell à sa racine. Tant que le candidat
+   n'est pas committé, utiliser une copie source isolée préparée séparément de
+   l'*ensemble de l'arbre de travail courant*, fichiers candidats non suivis compris ;
+   exclure `.git`, `.venv`, `node_modules`, caches, bases, sauvegardes et autres
+   données privées. Un clone Git seul n'inclut pas les modifications ni les fichiers
+   non suivis. Sinon, **uniquement lorsque le commit exact du candidat existe en
+   local**, cloner son dépôt local dans un nouveau dossier et sélectionner ce commit.
+   Remplacer ci-dessous le chemin local, la destination neuve et le SHA complet
+   vérifié ; ce n'est pas une release distante :
+
+   ```powershell
+   $ErrorActionPreference = "Stop"
+   $Source = 'C:\path\to\local\repository'
+   $Destination = 'C:\path\to\new\sentinel-x-candidate'
+   $CandidateCommit = '<verified-full-candidate-commit-sha>'
+   if (Test-Path -LiteralPath $Destination) { throw "Destination exists; choose a new directory." }
+   git clone --no-checkout -- "$Source" "$Destination"
+   if ($LASTEXITCODE -ne 0) { throw "Local clone failed." }
+   Set-Location -LiteralPath $Destination
+   git checkout --detach $CandidateCommit
+   if ($LASTEXITCODE -ne 0) { throw "Candidate checkout failed." }
+   git rev-parse HEAD
+   if ($LASTEXITCODE -ne 0) { throw "Commit verification failed." }
+   ```
+
+   Vérifier que HEAD affiché est le SHA candidat vérifié. HEAD détaché est normal.
+   Le HEAD historique actuel seul n'est **pas** le candidat non committé.
+2. À la racine de la copie ou du clone choisi, installer les dépendances verrouillées :
+
+   ```powershell
+   $ErrorActionPreference = "Stop"
+   py -3.11 -m venv .venv
+   if ($LASTEXITCODE -ne 0) { throw "venv creation failed." }
+   New-Item -ItemType Directory -Force -Path .cache/pip,.cache/tmp,.cache/npm | Out-Null
+   $env:TEMP = Join-Path (Get-Location) ".cache/tmp"
+   $env:TMP = $env:TEMP
+   $env:npm_config_cache = Join-Path (Get-Location) ".cache/npm"
+   .\.venv\Scripts\python.exe -I -m pip --isolated install --cache-dir .cache/pip -r backend/requirements-lock.txt
+   if ($LASTEXITCODE -ne 0) { throw "Python dependency install failed." }
+   npm.cmd --prefix frontend ci --no-audit --no-fund
+   if ($LASTEXITCODE -ne 0) { throw "npm install failed." }
+   ```
+
+   Le verrou Python et `frontend/package-lock.json` fixent les versions. Ces
+   installations peuvent nécessiter Internet ou des caches locaux suffisamment
+   remplis ; ce document n'affirme aucun accès réseau. Les variables ne concernent
+   que cette session PowerShell.
+3. **Acquérir le schéma de validation CISA**, distinct du catalogue KEV :
+
+   ```powershell
+   .\.venv\Scripts\python.exe -I tools/bootstrap_schema.py
+   if ($LASTEXITCODE -ne 0) { throw "Schema bootstrap failed." }
+   ```
+
+   Le schéma n'est pas dans Git. Le bootstrap télécharge la révision officielle
+   épinglée en HTTPS et vérifie son SHA-256, ou vérifie sans réseau un fichier local
+   déjà identique ; il n'écrase jamais des octets différents. Hors ligne, fournir
+   d'abord le schéma exact vérifié dans `backend/app/kev_schema.json`, sinon
+   s'arrêter. Voir [installation du schéma](docs/SCHEMA_SETUP.md) ; ne contourner
+   ni TLS ni l'empreinte.
+4. Lancer `.\START_SENTINEL.cmd` et ouvrir soi-même `http://127.0.0.1:5177` ; santé
+   API : `http://127.0.0.1:8007/api/health`. La base locale n'est pas distribuée :
+   une installation neuve affiche **NO DATA**. La synchronisation CISA manuelle
+   dans DATA CONTROL est facultative et nécessite Internet ; aucune collecte au
+   démarrage. L'audit de site Internet reste désactivé, même avec URL et autorisation.
+   La fixture expérimentale de boucle locale n'est pas un audit Internet. Garder
+   la console du lanceur ouverte ; l'arrêter depuis cette console. Ne jamais exposer
+   publiquement ces services locaux ni arrêter un autre processus pour libérer un port.
+
 **0.1.1 — GHSA Intelligence Edition.** P1-C est intégré dans main par la PR #9 : les avis GitHub reviewed, demandés explicitement pour une CVE locale, complètent CISA KEV, NVD/CVSS et FIRST EPSS. Ce numéro source et ces notes ne publient pas une Release ; consulter les [Releases GitHub](https://github.com/JLV-73/sentinel-x/releases) pour la disponibilité réelle. Le tag immuable v0.1.1 devient utilisable après publication. La stable antérieure v0.1.0 et les deux Alpha restent préservées. « Stable » ne signifie pas certifié.
 
 | Version | Ce qui est installé |
@@ -81,7 +179,7 @@ uniquement `--branch v0.1.1` par `--branch v0.1.0` à l’étape 2. Toujours cho
 un **nouveau dossier isolé** et conserver tous les prérequis/garde-fous ; ne pas
 réutiliser une installation opérationnelle ni ses données.
 
-## A. ESSAYER SENTINEL X — DÉMARRAGE RAPIDE
+## A. ESSAYER SENTINEL X — DÉMARRAGE HISTORIQUE D’UNE RELEASE
 
 ### 1. Ouvrir PowerShell normalement et vérifier les prérequis
 

@@ -15,8 +15,12 @@
 - **P1-C / GHSA INTELLIGENCE:** integrated into main by PR #9 on 2026-10-29, including the focused nullable-range correction. One explicitly requested local CVE, reviewed public advisories, original source fields, additive cache/provenance and FR/EN detail panel. The bounded pilot excludes OSV, bulk collection and automated alerts.
 - **R4 / v0.1.1 — GHSA Intelligence Edition:** source release candidate based on integrated P1-C, with coherent 0.1.1 metadata and current documentation/notes; no further functionality, dependency or refactoring. A source candidate is not a published tag/Release. Final documentary integration and publication require their explicit JLV authorization; GitHub Releases records actual availability.
 - **C1 / Chiara-MCP:** not engaged and remains outside the P1-C mandate.
-- **P2:** not implemented; any web-security-auditor concept remains a future
-  specification, not a current URL audit or scanning capability.
+- **DIGITAL FORTRESS / proposed v0.2.0:** experimental local fixture and local
+  diagnostic import/report exist in this candidate; Internet site analysis remains
+  disabled and unqualified. See [local guide](DIGITAL_FORTRESS_LOCAL.md).
+  A candidate is not a publication or a production-ready auditor.
+- **P2:** any Internet web-security-auditor capability remains unqualified and
+  disabled; no public target audit or scanning capability is delivered.
 - **P3:** not implemented; scope and delivery model remain undecided.
 
 Public source visibility and Apache-2.0 were authorized for G2. Structural merges,
