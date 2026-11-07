@@ -4,7 +4,114 @@
 
 Apache-2.0 · [Français](README.fr.md) · [Contribute](CONTRIBUTING.md)
 
-**0.1.1 — GHSA Intelligence Edition.** P1-C is integrated into main by PR #9: targeted, explicitly requested GitHub reviewed advisories complement CISA KEV, NVD/CVSS and FIRST EPSS. A source version or these notes do not publish a Release; check [GitHub Releases](https://github.com/JLV-73/sentinel-x/releases) for actual availability. The immutable v0.1.1 tag becomes usable after publication. Earlier stable v0.1.0 and both Alpha releases remain preserved. “Stable” is not a security certification.
+## v0.2.0 source overview
+
+`VERSION` and frontend package metadata identify **0.2.0**. This source tree
+does not itself establish publication or remote availability; check
+[GitHub Releases](https://github.com/JLV-73/sentinel-x/releases). The installation
+below is separate from the historical release instructions and version table.
+
+| Area | Status in this source tree | Boundary |
+|---|---|---|
+| NIGHTFALL / triage | Existing local implementation | Source collection is explicit; see source contracts below. |
+| GHSA | Bounded pilot | One requested CVE; not comprehensive coverage. |
+| DIGITAL FORTRESS fixture | Experimental local demonstration | Loopback HTTPS and simulated DNS/peer, not an Internet audit. |
+| Diagnostic import / report | Experimental local JSON import and HTML export | User-declared observations, not authenticated or independently verified. |
+| Internet site analysis | Disabled | URL entry and authorization do not enable analysis; safeguards remain unqualified. |
+
+See [DIGITAL FORTRESS local guide](docs/DIGITAL_FORTRESS_LOCAL.md),
+[release notes FR](docs/RELEASE_v0.2.0.fr.md) /
+[EN](docs/RELEASE_v0.2.0.md). “Implemented” is a source description, not a
+claim of a fresh runtime validation, security certification or production readiness.
+
+## Install v0.2.0 source (Windows)
+
+Use a new, writable, isolated directory, never an operational checkout or its data.
+Use normal PowerShell, not administrator mode. Windows 11, Git, Python 3.11,
+Node.js 24 and npm are prerequisites; check `git --version`, `py -3.11 --version`,
+`node --version` and `npm.cmd --version`. Stop on any error. The commands below
+are PowerShell, not cmd.exe or Git Bash.
+
+1. **Choose one source**, then open PowerShell in its root. For uncommitted changes,
+   use a separately prepared source-only copy of the *complete current
+   working tree*, including untracked candidate files; exclude `.git`, `.venv`,
+   `node_modules`, caches, databases, backups and other private data. A Git clone
+   alone does not include uncommitted or untracked files. Alternatively, when
+   the exact commit exists locally, clone its local repository into a
+   new directory and check out that exact commit. Substitute the actual local path,
+   new destination and verified full commit SHA below; they are not a remote release:
+
+   ```powershell
+   $ErrorActionPreference = "Stop"
+   $Source = 'C:\path\to\local\repository'
+   $Destination = 'C:\path\to\new\sentinel-x-candidate'
+   $CandidateCommit = '<verified-full-candidate-commit-sha>'
+   if (Test-Path -LiteralPath $Destination) { throw "Destination exists; choose a new directory." }
+   git clone --no-checkout -- "$Source" "$Destination"
+   if ($LASTEXITCODE -ne 0) { throw "Local clone failed." }
+   Set-Location -LiteralPath $Destination
+   git checkout --detach $CandidateCommit
+   if ($LASTEXITCODE -ne 0) { throw "Candidate checkout failed." }
+   git rev-parse HEAD
+   if ($LASTEXITCODE -ne 0) { throw "Commit verification failed." }
+   ```
+
+   Check that the printed HEAD is the verified candidate SHA. Detached HEAD is
+   expected; a commit checkout does not include uncommitted changes.
+
+   **Published source alternative:** only once `v0.2.0` is actually published,
+   confirm the tag and Release on GitHub Releases, then from a new writable parent:
+
+   ```powershell
+   if (Test-Path -LiteralPath .\sentinel-x) { throw "sentinel-x already exists. Use a new parent folder; do not delete it." }
+   git clone --branch v0.2.0 https://github.com/JLV-73/sentinel-x.git
+   if ($LASTEXITCODE -ne 0) { throw "Clone failed. Stop here." }
+   Set-Location .\sentinel-x
+   ```
+
+   A detached HEAD is normal. Continue at step 2 from the new clone root.
+2. From the chosen source-copy or clone root, install the locked dependencies:
+
+   ```powershell
+   $ErrorActionPreference = "Stop"
+   py -3.11 -m venv .venv
+   if ($LASTEXITCODE -ne 0) { throw "venv creation failed." }
+   New-Item -ItemType Directory -Force -Path .cache/pip,.cache/tmp,.cache/npm | Out-Null
+   $env:TEMP = Join-Path (Get-Location) ".cache/tmp"
+   $env:TMP = $env:TEMP
+   $env:npm_config_cache = Join-Path (Get-Location) ".cache/npm"
+   .\.venv\Scripts\python.exe -I -m pip --isolated install --cache-dir .cache/pip -r backend/requirements-lock.txt
+   if ($LASTEXITCODE -ne 0) { throw "Python dependency install failed." }
+   npm.cmd --prefix frontend ci --no-audit --no-fund
+   if ($LASTEXITCODE -ne 0) { throw "npm install failed." }
+   ```
+
+   The Python lock and `frontend/package-lock.json` determine versions. These
+   installs may require Internet or appropriately populated local package caches;
+   no network access is implied by this documentation. Environment changes apply
+   only to this PowerShell session.
+3. **Acquire the CISA validation schema**, distinct from the KEV catalogue:
+
+   ```powershell
+   .\.venv\Scripts\python.exe -I tools/bootstrap_schema.py
+   if ($LASTEXITCODE -ne 0) { throw "Schema bootstrap failed." }
+   ```
+
+   The schema is not in Git. Bootstrap downloads the pinned official revision over
+   HTTPS and verifies its SHA-256, or verifies an already present matching local
+   file without network; it never overwrites different bytes. Offline, supply the
+   exact verified schema locally at `backend/app/kev_schema.json` first; otherwise
+   stop. See [schema setup](docs/SCHEMA_SETUP.md); do not bypass TLS or the hash.
+4. Start with `.\START_SENTINEL.cmd` and open `http://127.0.0.1:5177` yourself;
+   health is at `http://127.0.0.1:8007/api/health`. The local database is not
+   distributed: a fresh installation starts with **NO DATA**. A manual CISA sync
+   in DATA CONTROL is optional and needs Internet; no collection starts on launch.
+   Internet site auditing stays disabled, including when a URL and authorization
+   are provided. The experimental loopback fixture is not an Internet audit. Keep
+   the launcher console open; stop it from that console. Never expose these local
+   services publicly or terminate an unrelated process to free a port.
+
+**0.1.1 — GHSA Intelligence Edition.** P1-C is integrated into main by PR #9: targeted, explicitly requested GitHub reviewed advisories complement CISA KEV, NVD/CVSS and FIRST EPSS. The v0.1.1 tag and Release were published; check [GitHub Releases](https://github.com/JLV-73/sentinel-x/releases) for availability. Earlier stable v0.1.0 and both Alpha releases remain preserved. “Stable” is not a security certification.
 
 | Version | What you install |
 |---|---|
@@ -72,13 +179,12 @@ only reads the local cache. GitHub Advisory Database data is **CC-BY-4.0**, sepa
 from this project’s Apache-2.0 code; attribution and the original JSON remain available.
 See [the bounded pilot contract](docs/GHSA_PILOT_CONTRACT.md).
 
-**Installation choice:** the quick start selects immutable `v0.1.1`, usable only
-after its publication. Before that publication, the earlier published stable
-`v0.1.0` (without GHSA) remains available: replace only `--branch v0.1.1` with
+**Installation choice:** the historical quick start selects published `v0.1.1`.
+The earlier published stable `v0.1.0` (without GHSA) is an alternative: replace only `--branch v0.1.1` with
 `--branch v0.1.0` in step 2. Always use a **new isolated directory** and retain
 every prerequisite and safeguard; never reuse an operational checkout or its data.
 
-## A. TRY SENTINEL X — QUICK START
+## A. TRY SENTINEL X — HISTORICAL RELEASE QUICK START
 
 ### 1. Open normal PowerShell and verify prerequisites
 
@@ -105,7 +211,7 @@ This explicitly leaves any initial PowerShell directory and uses your user home.
 
 ### 2. Download the immutable stable source
 
-**Availability:** the command below is usable **after the `v0.1.1` tag is published**.
+**Availability:** the `v0.1.1` tag has been published.
 Check [GitHub Releases](https://github.com/JLV-73/sentinel-x/releases) first.
 A **detached HEAD is normal** when checking out an immutable release tag.
 

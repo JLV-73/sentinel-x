@@ -1,0 +1,21 @@
+import {it,expect,vi} from 'vitest';
+import {render,screen,fireEvent} from '@testing-library/react';
+import DigitalFortress from './views/DigitalFortress';
+import {LocaleProvider} from './i18n';
+it('does not send the entered URL and requires fixture consent',async()=>{
+ const fetcher=vi.spyOn(globalThis,'fetch').mockRejectedValue(new Error('offline'));
+ render(<LocaleProvider><DigitalFortress/></LocaleProvider>);
+ fireEvent.change(screen.getByLabelText(/URL HTTPS/i),{target:{value:'https://private.example/path?secret=1'}});
+ expect(screen.getByRole('button',{name:/analyse|analyser/i})).toBeDisabled();
+ const demo=screen.getByRole('button',{name:/run local fixture|lancer la fixture locale/i});
+ expect(demo).toBeDisabled();
+ fireEvent.click(screen.getByLabelText(/consent.*fixture|autorise.*fixture/i));
+ fireEvent.click(demo);
+ expect(fetcher).toHaveBeenCalledTimes(1);
+ const [url,options]=fetcher.mock.calls[0];
+ expect(url).toBe('http://127.0.0.1:8007/api/fortress/mvp/capability');
+ expect(options?.method).toBe('GET');
+ expect(options?.headers).toEqual({'X-Sentinel-Request':'sync'});
+ expect(options?.body).toBeUndefined();
+ fetcher.mockRestore();
+});

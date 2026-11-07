@@ -4,6 +4,12 @@ Versioned releases and dated historical milestones. Publication status is establ
 
 The First Alpha integrates **P0.1 + P1-A** on its main candidate. The original CISA-only baseline remains frozen at `p0.1-international-stable`; [`p1/intelligence-core`](https://github.com/JLV-73/sentinel-x/tree/p1/intelligence-core) remains a preserved development reference. Earlier milestone entries describe their historical scopes. Clean-publication history is separate from the private local archive.
 
+## v0.2.0
+
+- Experimental DIGITAL FORTRESS local HTTPS fixture demonstration, local diagnostic JSON import and local HTML report preview/export. Internet analysis remains disabled and unqualified.
+- Existing NIGHTFALL and bounded GHSA workflows remain separate; see [local guide](docs/DIGITAL_FORTRESS_LOCAL.md) and notes [EN](docs/RELEASE_v0.2.0.md) / [FR](docs/RELEASE_v0.2.0.fr.md).
+- Source and frontend package metadata identify 0.2.0. No tag, publication or new execution evidence is implied by this heading.
+
 ## 0.1.1 — GHSA Intelligence Edition
 
 - Adds explicitly requested, anonymous GitHub reviewed-advisory enrichment for one existing local KEV CVE; no catalogue-wide lookup or OSV connector.
