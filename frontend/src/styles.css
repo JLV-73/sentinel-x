@@ -51,3 +51,8 @@
 .intel-indicators{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px}.intel-indicator{font-size:12px;line-height:1.7;overflow-wrap:anywhere}.intel-catalogue-feedback{padding:10px 17px;color:var(--amber);font-size:14px;line-height:1.7}.intel-catalogue-feedback button{min-height:44px}
 @media(max-width:1050px){.intel-sources-grid{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:760px){.intel-content{padding:0 17px 18px}.intel-dimension{padding:14px}.intel-fields{grid-template-columns:minmax(0,1fr)}.intel-source-heading{align-items:flex-start;flex-direction:column}.intel-source-heading .button{width:100%}.intel-indicators{display:grid;gap:2px}.intel-sources-grid{gap:18px}}
+
+/* Founder identity: restrained NIGHTFALL accent, with a wrapping footer. */
+.page-heading .founder-credit{margin-top:10px;color:#8fdfeb;font-size:14px;font-weight:600;letter-spacing:.1px}
+.app-footer{flex-wrap:wrap}
+.app-footer .founder-legal{flex-basis:100%;max-width:100%;justify-content:flex-start;text-align:left;color:#9eb1c7;overflow-wrap:anywhere}
