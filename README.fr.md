@@ -4,9 +4,9 @@
 
 Apache-2.0 · [English](README.md) · [Contribuer](CONTRIBUTING.md)
 
-## Présentation des sources v0.2.0
+## Présentation des sources candidates v0.2.1
 
-`VERSION` et les métadonnées du paquet frontend indiquent **0.2.0**. Cet arbre
+`VERSION` et les métadonnées du paquet frontend indiquent **0.2.1**. Cet arbre
 source n'établit pas lui-même une publication ou une disponibilité distante ; consulter
 les [Releases GitHub](https://github.com/JLV-73/sentinel-x/releases). L'installation
 ci-dessous est distincte du tableau et du démarrage historiques.
@@ -20,11 +20,12 @@ ci-dessous est distincte du tableau et du démarrage historiques.
 | Analyse de site Internet | Désactivée | URL et autorisation ne l'activent pas ; protections non qualifiées. |
 
 Voir le [guide local DIGITAL FORTRESS](docs/DIGITAL_FORTRESS_LOCAL.md), les
-notes [FR](docs/RELEASE_v0.2.0.fr.md) / [EN](docs/RELEASE_v0.2.0.md).
+notes historiques v0.2.0 [FR](docs/RELEASE_v0.2.0.fr.md) / [EN](docs/RELEASE_v0.2.0.md).
+Le candidat d'identité v0.2.1 ne constitue pas à lui seul une release publiée.
 « Implémenté » décrit les sources, sans prétendre à une recette d'exécution récente,
 une certification de sécurité ou une aptitude à la production.
 
-## Installer les sources v0.2.0 (Windows)
+## Installer les sources candidates (Windows)
 
 Utiliser un nouveau dossier isolé accessible en écriture, jamais une installation
 opérationnelle ni ses données. Ouvrir PowerShell normalement, sans administrateur.
@@ -61,7 +62,8 @@ ni Git Bash.
    Vérifier que HEAD affiché est le SHA candidat vérifié. HEAD détaché est normal.
    Un checkout de commit ne comprend pas les modifications non committées.
 
-   **Alternative depuis les sources publiées :** seulement une fois `v0.2.0`
+   **Alternative stable publiée (v0.2.0, sans les changements d'identité v0.2.1) :**
+   seulement une fois `v0.2.0`
    effectivement publiée, confirmer le tag et la Release sur GitHub Releases, puis
    depuis un nouveau dossier parent accessible en écriture :
 

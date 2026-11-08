@@ -4,9 +4,9 @@
 
 Apache-2.0 · [Français](README.fr.md) · [Contribute](CONTRIBUTING.md)
 
-## v0.2.0 source overview
+## v0.2.1 candidate source overview
 
-`VERSION` and frontend package metadata identify **0.2.0**. This source tree
+`VERSION` and frontend package metadata identify **0.2.1**. This source tree
 does not itself establish publication or remote availability; check
 [GitHub Releases](https://github.com/JLV-73/sentinel-x/releases). The installation
 below is separate from the historical release instructions and version table.
@@ -20,11 +20,12 @@ below is separate from the historical release instructions and version table.
 | Internet site analysis | Disabled | URL entry and authorization do not enable analysis; safeguards remain unqualified. |
 
 See [DIGITAL FORTRESS local guide](docs/DIGITAL_FORTRESS_LOCAL.md),
-[release notes FR](docs/RELEASE_v0.2.0.fr.md) /
-[EN](docs/RELEASE_v0.2.0.md). “Implemented” is a source description, not a
+[historical v0.2.0 release notes FR](docs/RELEASE_v0.2.0.fr.md) /
+[EN](docs/RELEASE_v0.2.0.md). The v0.2.1 identity candidate is not itself a published release.
+“Implemented” is a source description, not a
 claim of a fresh runtime validation, security certification or production readiness.
 
-## Install v0.2.0 source (Windows)
+## Install candidate source (Windows)
 
 Use a new, writable, isolated directory, never an operational checkout or its data.
 Use normal PowerShell, not administrator mode. Windows 11, Git, Python 3.11,
@@ -59,7 +60,8 @@ are PowerShell, not cmd.exe or Git Bash.
    Check that the printed HEAD is the verified candidate SHA. Detached HEAD is
    expected; a commit checkout does not include uncommitted changes.
 
-   **Published source alternative:** only once `v0.2.0` is actually published,
+   **Published stable alternative (v0.2.0, without the v0.2.1 identity changes):**
+   only once `v0.2.0` is actually published,
    confirm the tag and Release on GitHub Releases, then from a new writable parent:
 
    ```powershell
