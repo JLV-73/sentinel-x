@@ -15,6 +15,35 @@ _NAMES = {'hsts': b'strict-transport-security', 'csp': b'content-security-policy
 _LIMIT = 32768
 _HOST = re.compile(r'(?=.{1,253}\Z)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\Z')
 _FIELD = re.compile(rb"[!#$%&'*+.^_`|~0-9A-Za-z-]+:[\x09\x20-\x7e\x80-\xff]*")
+_TOKEN = rb"[!#$%&'*+.^_`|~0-9A-Za-z-]+"
+_CODING = re.compile(_TOKEN)
+_PARAMETER = re.compile(rb'[ \t]*;[ \t]*' + _TOKEN + rb'[ \t]*=[ \t]*(?:' + _TOKEN
+                        + rb'|"(?:[\x09\x20\x21\x23-\x5b\x5d-\x7e\x80-\xff]|\\[\x09\x20-\x7e\x80-\xff])*")')
+
+
+def _valid_transfer_encoding(value):
+    # Parse delimiters outside quoted parameter values; chunked must be unique and final.
+    pos = 0
+    chunked = False
+    while True:
+        match = _CODING.match(value, pos)
+        if not match or chunked:
+            return False
+        chunked = match.group().lower() == b'chunked'
+        pos = match.end()
+        while parameter := _PARAMETER.match(value, pos):
+            if chunked:
+                return False
+            pos = parameter.end()
+        while pos < len(value) and value[pos] in b' \t':
+            pos += 1
+        if pos == len(value):
+            return True
+        if value[pos] != ord(','):
+            return False
+        pos += 1
+        while pos < len(value) and value[pos] in b' \t':
+            pos += 1
 
 
 def public_ip(value):
@@ -78,8 +107,11 @@ def parse_head(data):
     status = int(lines[0][9:12])
     fields = [(line.split(b':', 1)[0].lower(), line.split(b':', 1)[1].strip()) for line in lines[1:]]
     lengths = [v for k, v in fields if k == b'content-length']
+    encodings = [v for k, v in fields if k == b'transfer-encoding']
     if (len(lengths) > 1 or any(not re.fullmatch(rb'[0-9]{1,19}', v) for v in lengths)
-            or any(k == b'transfer-encoding' for k, _ in fields) or (status == 204 and lengths)):
+            or (status == 204 and (lengths or encodings))
+            or len(encodings) > 1 or (encodings and (lengths or lines[0].startswith(b'HTTP/1.0 ')
+                                                      or not _valid_transfer_encoding(encodings[0])))):
         raise ValueError('ambiguous headers')
     return status, {key: 'present' if any(k == name for k, _ in fields) else 'absent' for key, name in _NAMES.items()}
 

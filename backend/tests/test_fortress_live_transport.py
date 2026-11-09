@@ -6,12 +6,59 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from app.fortress_live import exchange_connected, observe, result
+from app.fortress_live import exchange_connected, observe, parse_head, result
 
 CERTS = Path(__file__).resolve().parents[1] / 'app' / 'fortress_mvp_tls'
 
 
 class TransportTests(unittest.TestCase):
+    def test_head_accepts_chunked_transfer_encoding_metadata(self):
+        status, headers = parse_head(b'HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n'
+                                     b'Strict-Transport-Security: max-age=1\r\n\r\n')
+        self.assertEqual(status, 200)
+        self.assertEqual(headers['hsts'], 'present')
+
+    def test_head_transfer_encoding_valid_metadata(self):
+        for code in (b'200 OK', b'304 Not Modified'):
+            for encoding in (b'chunked', b'GZip, ChUnKeD', b'gzip',
+                             b'custom; a="one,two\\\"three"; b=token, chunked'):
+                with self.subTest(code=code, encoding=encoding):
+                    status, _ = parse_head(b'HTTP/1.1 ' + code + b'\r\nTransfer-Encoding: '
+                                           + encoding + b'\r\n\r\n')
+                    self.assertEqual(status, int(code[:3]))
+
+    def test_head_rejects_invalid_or_ambiguous_transfer_encoding(self):
+        for fields in (b'Transfer-Encoding: chunked\r\nContent-Length: 0',
+                       b'Transfer-Encoding: gzip\r\nTransfer-Encoding: chunked',
+                       b'Transfer-Encoding: chunked, gzip', b'Transfer-Encoding: chunked, chunked',
+                       b'Transfer-Encoding: chunked; x=y', b'Transfer-Encoding: gzip; x',
+                       b'Transfer-Encoding: gzip; x="unterminated', b'Transfer-Encoding: gzip,,chunked',
+                       b'Transfer-Encoding: gzip,', b'Transfer-Encoding: ,gzip',
+                       b'Transfer-Encoding: ', b'Transfer-Encoding: g zip'):
+            with self.subTest(fields=fields), self.assertRaises(ValueError):
+                parse_head(b'HTTP/1.1 200 OK\r\n' + fields + b'\r\n\r\n')
+        for response in (b'HTTP/1.1 204 No Content', b'HTTP/1.0 200 OK',
+                         b'HTTP/1.1 100 Continue'):
+            with self.subTest(response=response), self.assertRaises(ValueError):
+                parse_head(response + b'\r\nTransfer-Encoding: chunked\r\n\r\n')
+        with self.assertRaises(ValueError):
+            parse_head(b'HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\n')
+
+    def test_head_does_not_read_a_chunked_body(self):
+        from unittest.mock import MagicMock
+        tls = MagicMock()
+        tls.__enter__.return_value = tls
+        tls.recv.side_effect = [b'HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n',
+                                AssertionError('unexpected body read')]
+        context = MagicMock(verify_mode=ssl.CERT_REQUIRED, check_hostname=True)
+        context.wrap_socket.return_value = tls
+        out = result('https://example.invalid/')
+        exchange_connected(MagicMock(), 'example.invalid', 'example.invalid', '/', context,
+                           time.monotonic() + 3, out)
+        self.assertEqual(out['http_status'], 200)
+        self.assertEqual(out['failure_code'], 'none')
+        tls.recv.assert_called_once()
+
     def test_mixed_dns_blocks_before_connect(self):
         rows = [(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('8.8.8.8', 443)),
                 (socket.AF_INET6, socket.SOCK_STREAM, 6, '', ('::1', 443, 0, 0))]
