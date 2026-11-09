@@ -1,5 +1,6 @@
 // Every entry must supply EN and FR. Keys are inferred, never free-form strings.
 export const messages={
+ fortressIntro:['HTTPS OBSERVATION / LOCAL FIXTURE','OBSERVATION HTTPS / FIXTURE LOCALE'],
  triageScope:['CISA KEV membership does not demonstrate that your organisation is vulnerable. No asset scan or inventory.','L’inscription CISA KEV ne démontre pas que votre organisation est vulnérable. Aucun scan ni inventaire d’actifs.'],
  triageFacts:['Source facts · local snapshot','Faits des sources · instantané local'],
  triageCriteria:['Independent criteria','Critères indépendants'],

@@ -4,9 +4,10 @@
 
 Apache-2.0 · [English](README.md) · [Contribuer](CONTRIBUTING.md)
 
-## Présentation des sources candidates v0.2.1
+## Présentation des sources candidates v0.2.2
 
-`VERSION` et les métadonnées du paquet frontend indiquent **0.2.1**. Cet arbre
+`VERSION` et les métadonnées du paquet frontend indiquent **0.2.2**. Ce candidat
+local n'est ni un tag ni une release v0.2.2 publiés. Cet arbre
 source n'établit pas lui-même une publication ou une disponibilité distante ; consulter
 les [Releases GitHub](https://github.com/JLV-73/sentinel-x/releases). L'installation
 ci-dessous est distincte du tableau et du démarrage historiques.
@@ -17,11 +18,12 @@ ci-dessous est distincte du tableau et du démarrage historiques.
 | GHSA | Pilote borné | Une CVE demandée ; couverture non exhaustive. |
 | Fixture DIGITAL FORTRESS | Démonstration locale expérimentale | HTTPS en boucle locale et DNS/pair simulés, pas un audit Internet. |
 | Import / rapport | Import JSON local et export HTML expérimentaux | Observations déclarées, ni authentifiées ni vérifiées indépendamment. |
-| Analyse de site Internet | Désactivée | URL et autorisation ne l'activent pas ; protections non qualifiées. |
+| Observation HTTPS | Candidat Windows expérimental | Une tentative HEAD autorisée ; protections et cycle de vie non entièrement qualifiés. |
 
-Voir le [guide local DIGITAL FORTRESS](docs/DIGITAL_FORTRESS_LOCAL.md), les
+Voir les [limites DIGITAL FORTRESS v0.2.2](docs/DIGITAL_FORTRESS_V022.fr.md), le
+[guide local](docs/DIGITAL_FORTRESS_LOCAL.md) pour la démonstration et l’import, les
 notes historiques v0.2.0 [FR](docs/RELEASE_v0.2.0.fr.md) / [EN](docs/RELEASE_v0.2.0.md).
-Le candidat d'identité v0.2.1 ne constitue pas à lui seul une release publiée.
+
 « Implémenté » décrit les sources, sans prétendre à une recette d'exécution récente,
 une certification de sécurité ou une aptitude à la production.
 
@@ -62,14 +64,13 @@ ni Git Bash.
    Vérifier que HEAD affiché est le SHA candidat vérifié. HEAD détaché est normal.
    Un checkout de commit ne comprend pas les modifications non committées.
 
-   **Alternative stable publiée (v0.2.0, sans les changements d'identité v0.2.1) :**
-   seulement une fois `v0.2.0`
-   effectivement publiée, confirmer le tag et la Release sur GitHub Releases, puis
+   **Alternative stable (v0.2.1, sans les changements du candidat v0.2.2) :**
+   confirmer le tag et la Release sur GitHub Releases, puis
    depuis un nouveau dossier parent accessible en écriture :
 
    ```powershell
    if (Test-Path -LiteralPath .\sentinel-x) { throw "sentinel-x already exists. Use a new parent folder; do not delete it." }
-   git clone --branch v0.2.0 https://github.com/JLV-73/sentinel-x.git
+   git clone --branch v0.2.1 https://github.com/JLV-73/sentinel-x.git
    if ($LASTEXITCODE -ne 0) { throw "Clone failed. Stop here." }
    Set-Location .\sentinel-x
    ```
@@ -112,7 +113,8 @@ ni Git Bash.
    API : `http://127.0.0.1:8007/api/health`. La base locale n'est pas distribuée :
    une installation neuve affiche **NO DATA**. La synchronisation CISA manuelle
    dans DATA CONTROL est facultative et nécessite Internet ; aucune collecte au
-   démarrage. L'audit de site Internet reste désactivé, même avec URL et autorisation.
+   démarrage. L'observation HTTPS expérimentale du candidat exige une autorisation
+   spécifique et comporte des limites importantes : voir le guide v0.2.2.
    La fixture expérimentale de boucle locale n'est pas un audit Internet. Garder
    la console du lanceur ouverte ; l'arrêter depuis cette console. Ne jamais exposer
    publiquement ces services locaux ni arrêter un autre processus pour libérer un port.
@@ -187,13 +189,13 @@ de fond. Ouvrir une fiche/changer de langue ne lit que le cache local. Les donn�
 GitHub Advisory Database sont **CC-BY-4.0**, distinctes du code Apache-2.0 ; attribution
 et JSON d’origine restent disponibles. Voir le [contrat du pilote borné](docs/GHSA_PILOT_CONTRACT.md).
 
-**Choix d’installation :** le démarrage historique sélectionne le tag publié
-`v0.1.1`. La stable antérieure publiée `v0.1.0` (sans GHSA) est une alternative : remplacer
-uniquement `--branch v0.1.1` par `--branch v0.1.0` à l’étape 2. Toujours choisir
+**Choix d’installation :** le démarrage stable sélectionne `v0.2.1`, pas le candidat v0.2.2.
+La stable antérieure publiée `v0.1.0` (sans GHSA) est une alternative : remplacer
+uniquement `--branch v0.2.1` par `--branch v0.1.0` à l’étape 2. Toujours choisir
 un **nouveau dossier isolé** et conserver tous les prérequis/garde-fous ; ne pas
 réutiliser une installation opérationnelle ni ses données.
 
-## A. ESSAYER SENTINEL X — DÉMARRAGE HISTORIQUE D’UNE RELEASE
+## A. ESSAYER SENTINEL X — DÉMARRAGE D’UNE RELEASE STABLE
 
 ### 1. Ouvrir PowerShell normalement et vérifier les prérequis
 
@@ -220,13 +222,13 @@ Le positionnement explicite quitte le dossier initial de PowerShell pour ton dos
 
 ### 2. Télécharger les sources stables immuables
 
-**Disponibilité :** le tag `v0.1.1` a été publié.
+**Disponibilité :** vérifier le tag et la Release `v0.2.1` avant le clonage.
 Vérifier d’abord les [Releases GitHub](https://github.com/JLV-73/sentinel-x/releases).
 Un **HEAD détaché est normal** lors du clonage d’un tag de Release immuable.
 
 ```powershell
 if (Test-Path -LiteralPath .\sentinel-x) { throw "sentinel-x already exists. Use a new parent folder; do not delete it." }
-git clone --branch v0.1.1 https://github.com/JLV-73/sentinel-x.git
+git clone --branch v0.2.1 https://github.com/JLV-73/sentinel-x.git
 if ($LASTEXITCODE -ne 0) { throw "Clone failed. Stop here; do not run Python or npm." }
 Set-Location .\sentinel-x
 ```

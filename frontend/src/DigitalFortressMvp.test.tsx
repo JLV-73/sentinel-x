@@ -6,7 +6,7 @@ it('does not send the entered URL and requires fixture consent',async()=>{
  const fetcher=vi.spyOn(globalThis,'fetch').mockRejectedValue(new Error('offline'));
  render(<LocaleProvider><DigitalFortress/></LocaleProvider>);
  fireEvent.change(screen.getByLabelText(/URL HTTPS/i),{target:{value:'https://private.example/path?secret=1'}});
- expect(screen.getByRole('button',{name:/analyse|analyser/i})).toBeDisabled();
+ expect(screen.getByRole('button',{name:/observe site|observer le site/i})).toBeDisabled();
  const demo=screen.getByRole('button',{name:/run local fixture|lancer la fixture locale/i});
  expect(demo).toBeDisabled();
  fireEvent.click(screen.getByLabelText(/consent.*fixture|autorise.*fixture/i));

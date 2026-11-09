@@ -1,0 +1,33 @@
+import {it,expect,vi,afterEach} from 'vitest';
+import {render,screen,fireEvent,waitFor,cleanup} from '@testing-library/react';
+import DigitalFortress from './views/DigitalFortress';
+import {LocaleProvider} from './i18n';
+afterEach(()=>{cleanup();vi.restoreAllMocks();});
+it('requires consent and sends the strict audit request only after activation',async()=>{
+ const fetcher=vi.spyOn(globalThis,'fetch').mockResolvedValueOnce(new Response(JSON.stringify({capability:'a'.repeat(32)}),{status:200})).mockResolvedValueOnce(new Response(JSON.stringify({mode:'live',target:'https://example.org/',observed_at:'2026-01-01T00:00:00Z',http_status:200,tls:{certificate:'verified',hostname:'verified',protocol:'TLSv1.3',not_before:'Jan  1 00:00:00 2026 GMT',not_after:'Jan  1 00:00:00 2027 GMT'},headers:{hsts:'present',csp:'absent',x_content_type_options:'present',referrer_policy:'present',permissions_policy:'absent'},failure_code:'none'}),{status:200}));
+ render(<LocaleProvider><DigitalFortress/></LocaleProvider>);
+ const button=screen.getByRole('button',{name:/observer le site|observe site/i});
+ fireEvent.change(screen.getByLabelText(/URL HTTPS/i),{target:{value:'https://example.org/private?secret=1'}});
+ expect(button).toBeDisabled();expect(fetcher).not.toHaveBeenCalled();
+ fireEvent.click(screen.getByLabelText(/autorisé à observer|authorized to observe/i));fireEvent.click(button);
+ await waitFor(()=>expect(fetcher).toHaveBeenCalledTimes(2));
+ expect(fetcher.mock.calls[1][0]).toBe('http://127.0.0.1:8007/api/fortress/audit');
+ expect(fetcher.mock.calls[1][1]?.headers).toEqual({'X-Sentinel-Request':'sync','X-Sentinel-Capability':'a'.repeat(32),'Content-Type':'application/json'});
+ expect(JSON.parse(String(fetcher.mock.calls[1][1]?.body))).toEqual({url:'https://example.org/private?secret=1',consent:true});
+ await screen.findByText(/observation réelle|live observation/i);
+ expect(document.body.textContent).not.toContain('secret=1');
+ expect(screen.getByRole('button',{name:/télécharger.*observation|download.*observation/i})).toBeEnabled();
+ fireEvent.change(screen.getByLabelText(/URL HTTPS/i),{target:{value:'https://other.example/'}});
+ expect(screen.queryByText(/observation réelle|live observation/i)).toBeNull();expect(button).toBeDisabled();
+});
+it('ignores a delayed capability after consent is withdrawn',async()=>{
+ let resolve!:(r:Response)=>void;
+ const fetcher=vi.spyOn(globalThis,'fetch').mockImplementation(()=>new Promise<Response>(r=>{resolve=r;}));
+ render(<LocaleProvider><DigitalFortress/></LocaleProvider>);
+ fireEvent.change(screen.getByLabelText(/URL HTTPS/i),{target:{value:'https://example.org/'}});
+ const consent=screen.getByLabelText(/autorisé à observer|authorized to observe/i);
+ fireEvent.click(consent);fireEvent.click(screen.getByRole('button',{name:/observer le site|observe site/i}));
+ fireEvent.click(consent);resolve(new Response(JSON.stringify({capability:'a'.repeat(32)}),{status:200}));
+ await waitFor(()=>expect(screen.getByRole('button',{name:/observer le site|observe site/i})).toBeDisabled());
+ expect(fetcher).toHaveBeenCalledTimes(1);expect(screen.queryByText(/observation réelle|live observation/i)).toBeNull();
+});

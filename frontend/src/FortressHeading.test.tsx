@@ -1,0 +1,22 @@
+import {afterEach,beforeEach,expect,it,vi} from 'vitest';
+import {fireEvent,render,screen,within} from '@testing-library/react';
+import App from './App';
+import {defaultResponse} from './test/fixtures';
+vi.mock('./components/Charts',()=>({TrendChart:()=>null,VendorChart:()=>null}));
+beforeEach(()=>{localStorage.clear();localStorage.setItem('sentinel-x.locale','fr');window.location.hash='fortress';vi.stubGlobal('fetch',vi.fn(async(url:string)=>defaultResponse(url)));});
+afterEach(()=>vi.unstubAllGlobals());
+it('localizes the cockpit subtitle while preserving the local-only demo attribution',async()=>{
+ render(<App/>);
+ const heading=await screen.findByRole('heading',{level:1,name:'DIGITAL FORTRESS'});
+ const headingArea=heading.parentElement!;
+ expect(within(headingArea).getByText('OBSERVATION HTTPS / FIXTURE LOCALE')).toBeVisible();
+ expect(screen.getByRole('heading',{name:'Démonstration locale uniquement'})).toBeVisible();
+ expect(screen.getByText(/Pair public et DNS simulés ; aucun site Internet n’est contacté/)).toBeVisible();
+ fireEvent.click(screen.getByTestId('language-en'));
+ expect(within(headingArea).getByText('HTTPS OBSERVATION / LOCAL FIXTURE')).toBeVisible();
+ expect(within(headingArea).queryByText(/NO INTERNET/i)).not.toBeInTheDocument();
+ expect(screen.getByRole('heading',{name:'Local fixture demonstration only'})).toBeVisible();
+ expect(screen.getByText(/Public peer and DNS simulated; no Internet site is contacted/)).toBeVisible();
+ fireEvent.click(screen.getByTestId('language-fr'));
+ expect(within(headingArea).getByText('OBSERVATION HTTPS / FIXTURE LOCALE')).toBeVisible();
+});
