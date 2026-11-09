@@ -23,7 +23,7 @@ def test_public_url_never_opens_network(monkeypatch):
     assert result['failure_code'] == 'not_performed'
 
 
-def test_operational_route_is_closed_before_body():
+def test_operational_route_requires_capability_before_body():
     from fastapi.testclient import TestClient
     from fastapi import FastAPI
     from app.fortress_mvp_api import install_disabled_route
@@ -31,7 +31,7 @@ def test_operational_route_is_closed_before_body():
     install_disabled_route(app, ('http://127.0.0.1:5177',))
     client = TestClient(app, base_url='http://127.0.0.1:8007')
     response = client.post('/api/fortress/audit', headers={'Origin': 'http://127.0.0.1:5177', 'X-Sentinel-Request': 'sync'}, content=b'not JSON')
-    assert response.status_code == 503
+    assert response.status_code == 403
 
 
 def test_forbidden_and_tls_failure_are_real_distinct_results():
