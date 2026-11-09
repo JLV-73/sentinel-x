@@ -2,7 +2,7 @@
 
 ## Français
 
-**Expérimental : l’analyse Internet est désactivée.** La saisie d’une URL et la case d’autorisation ne l’activent pas ; ne pas contourner cette désactivation. Le moteur interne de diagnostic n’est pas qualifié pour une cible non fiable. Aucune certification, aucun audit complet ni garantie de sécurité ne découlent d’un rapport. Ne pas exposer l’application publiquement.
+**Périmètre :** ce guide décrit les parcours de démonstration et d’import locaux. Dans le candidat v0.2.2, l’observation HTTPS réelle est également disponible sous conditions : voir [périmètre et limites v0.2.2](DIGITAL_FORTRESS_V022.fr.md). Elle reste expérimentale et nécessite une autorisation explicite. Les versions antérieures peuvent la laisser désactivée. Aucun rapport ne constitue une certification ou un audit complet. Ne pas exposer l’application publiquement.
 
 ### Démo locale
 
@@ -18,7 +18,7 @@ L’usage de ces deux parcours ne nécessite pas de connexion Internet ; l’ins
 
 ## English
 
-**Experimental: Internet analysis is disabled.** Entering a URL and checking authorization does not enable it; do not bypass this restriction. The internal diagnostic engine is not qualified for an untrusted target. Reports are not certification, a complete audit or a security guarantee. Do not expose the application publicly.
+**Scope:** this guide describes local demonstration and import workflows. The v0.2.2 candidate also offers real HTTPS observation under conditions: see [v0.2.2 scope and limits](DIGITAL_FORTRESS_V022.md). It remains experimental and requires explicit authorization. Earlier versions may leave it disabled. No report is a certification or complete audit. Do not expose the application publicly.
 
 ### Local demo
 
