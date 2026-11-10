@@ -6,7 +6,7 @@ import {renderFortressReport} from './fortressReport';
 
 it('bootstraps capability and posts only consent and scenario without exposing it',async()=>{
  const token='test-capability-secret-0123456789abcdef';
- const fetcher=vi.spyOn(globalThis,'fetch').mockResolvedValueOnce({ok:true,json:async()=>({capability:token})} as Response).mockResolvedValueOnce({ok:true,json:async()=>({mode:'fixture',scenario:'ok'})} as Response);
+ const fetcher=vi.spyOn(globalThis,'fetch').mockResolvedValueOnce(new Response(JSON.stringify({capability:token}))).mockResolvedValueOnce(new Response(JSON.stringify({mode:'fixture',scenario:'ok'})));
  render(<LocaleProvider><DigitalFortress/></LocaleProvider>);
  fireEvent.change(screen.getByLabelText(/URL HTTPS/i),{target:{value:'https://private.example/secret'}});
  fireEvent.click(screen.getByLabelText(/consent.*fixture|autorise.*fixture/i));

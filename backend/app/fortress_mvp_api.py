@@ -104,9 +104,12 @@ def _unique_pairs(items):
 
 def _run_live(url, target):
     # Named mutex serializes cooperating API processes across Windows sessions.
-    # Exclusion is held by this worker thread until the supervised child is dead.
+    # Exclusion spans the cleanup attempt, not necessarily confirmed child death:
+    # a native termination/query/close failure can leave death unconfirmed while
+    # the finally block still releases the mutex. Native-fault qualification is
+    # NO GO; do not treat cleanup failure as proof of process termination.
     # Client/UI cancellation does not propagate to this worker; the job deadline
-    # bounds its execution instead, subject to the supervisor's cleanup limits.
+    # bounds acceptance of output, subject to the supervisor's cleanup limits.
     if os.name != 'nt':
         raise RuntimeError('Supervisor unavailable')
     if not _LIVE_LOCK.acquire(blocking=False):
@@ -131,7 +134,7 @@ def _run_live(url, target):
         code = "import sys;sys.path.insert(0,sys.argv[1]);from app.fortress_live_worker import main;raise SystemExit(main())"
         try:
             raw = run_gated([sys.executable, '-c', code, backend], 10, json.dumps(url).encode('ascii'))
-            # Post-communicate check: not a memory bound for an untrusted child.
+            # Defense in depth for substituted supervisors; real reads are bounded.
             value = None
             rejected = False
             try:
