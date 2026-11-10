@@ -1,11 +1,8 @@
-"""Pure fixture-only HEAD projection. No IO and no live provenance attestation.
+"""Pure HEAD facts and separately attributed synthetic fixture reports.
 
 The conservative HTTP/1.x subset is that accepted by fortress_live.parse_head.
-Validation checks consistency, not authenticity. Output is a closed vocabulary.
-``analyze_fixture`` accepts bytes supplied by its caller; synthetic origin is a
-usage requirement and cannot be verified by this module. Never pass real data.
-The separate declaration/1 vocabulary is metadata only: live/imported report
-payloads are rejected, not analyzed, until a qualified design exists.
+Facts describe bytes, never their origin. Validation checks consistency, not
+truth. Fixture reports retain their original synthetic-only provenance.
 """
 import re
 from .fortress_live import parse_head
@@ -183,12 +180,22 @@ def _analyze_fixture(data):
         status, _ = parse_head(data)
     except ValueError:
         return result
+    facts = analyze_head_facts(data)
+    result['observations'] = facts['observations']
+    result['findings'] = findings(facts['observations'])
+    result['execution'] = {'state': 'completed', 'cause': 'none', 'request_sent': 'unknown'}
+    return result
+
+
+def _analyze_head_facts(data):
+    "Pure projection; no claim about the source of supplied bytes."
+    status, _ = parse_head(data)
     values = {}
     for line in data.split(b'\r\n')[1:-2]:
         name, value = line.split(b':', 1)
         values.setdefault(name.lower(), []).append(value.strip().decode('latin1'))
     get = lambda name: values.get(name, [])
-    obs = result['observations']
+    obs = empty()
     obs.update(http_status=status, hsts=hsts(get(b'strict-transport-security')),
                csp=csp(get(b'content-security-policy')), csp_report_only=csp(get(b'content-security-policy-report-only')),
                csp_directives=csp_projection(get(b'content-security-policy')),
@@ -200,9 +207,18 @@ def _analyze_fixture(data):
     for key, name in (('x_content_type_options', b'x-content-type-options'), ('referrer_policy', b'referrer-policy'), ('permissions_policy', b'permissions-policy')):
         vals = get(name)
         obs[key] = 'absent' if not vals else ('present' if len(vals) == 1 else 'indeterminate')
-    result['execution'] = {'state': 'completed', 'cause': 'none', 'request_sent': 'unknown'}
-    result['findings'] = findings(obs)
-    return result
+    items = findings(obs)
+    for item in items:
+        item['route_id'] = 'head-route-1'
+    return {'schema_version': 'fortress.head-facts/1', 'observations': obs, 'findings': items}
+
+
+def analyze_head_facts(data):
+    """Closed rejection for malformed input or analysis failure."""
+    try:
+        return _analyze_head_facts(data)
+    except Exception:
+        return None
 
 
 def analyze_fixture(data):
@@ -237,6 +253,13 @@ def validate_report(report):
             return obs == empty() and report['findings'] == []
         if report['execution'] != {'state': 'completed', 'cause': 'none', 'request_sent': 'unknown'}:
             return False
+        return _validate_completed(obs, report['findings'])
+    except (KeyError, TypeError, ValueError):
+        return False
+
+
+def _validate_completed(obs, items, route=ROUTE):
+    try:
         if type(obs['http_status']) is not int or not 200 <= obs['http_status'] <= 599:
             return False
         if obs['hsts'] not in ('absent', 'positive', 'disabled', 'indeterminate'):
@@ -258,6 +281,7 @@ def validate_report(report):
             if type(effective) is not list or len(effective) > 4 or (obs[state] != 'present' and effective):
                 return False
             seen = set()
+            modes = {}
             by_name = {x['directive']: x['unsafe_inline'] for x in obs[projected]}
             for item in effective:
                 if type(item) is not dict or set(item) != {'sink', 'directive', 'mode'} or item['sink'] not in ('script-elem', 'script-attr', 'style-elem', 'style-attr') or item['sink'] in seen or item['mode'] not in ('review', 'uncertain'):
@@ -266,6 +290,9 @@ def validate_report(report):
                 applicable = next((n for n in (kind + '-src-' + suffix, kind + '-src', 'default-src') if n in by_name), None)
                 if item['directive'] != applicable or not by_name.get(applicable):
                     return False
+                if applicable in modes and modes[applicable] != item['mode']:
+                    return False
+                modes[applicable] = item['mode']
                 seen.add(item['sink'])
             for kind in ('script', 'style'):
                 for suffix in ('elem', 'attr'):
@@ -295,6 +322,19 @@ def validate_report(report):
                 return False
         elif p['violations'] is not None:
             return False
-        return type(report['findings']) is list and report['findings'] == findings(obs)
+        expected = findings(obs)
+        for item in expected:
+            item['route_id'] = route
+        return type(items) is list and items == expected
     except (KeyError, TypeError, ValueError):
+        return False
+
+
+def validate_head_facts(value):
+    try:
+        return (type(value) is dict and set(value) == {"schema_version", "observations", "findings"}
+                and value["schema_version"] == "fortress.head-facts/1"
+                and type(value["observations"]) is dict and set(value["observations"]) == set(empty())
+                and _validate_completed(value["observations"], value["findings"], 'head-route-1'))
+    except Exception:
         return False

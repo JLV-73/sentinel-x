@@ -3,7 +3,7 @@ import json
 import sys
 import ctypes
 import os
-from .fortress_live import observe
+from .fortress_live import observe, _OUTPUT_LIMIT
 
 
 def main():
@@ -26,10 +26,15 @@ def main():
         return 1
     try:
         url = json.loads(raw)
-        output = json.dumps(observe(url), separators=(',', ':')).encode('ascii')
+        from .fortress_live import validate_url
+        from .fortress_mvp_api import _valid_observation
+        observed = observe(url)
+        if not _valid_observation(observed, validate_url(url)[3]):
+            return 1
+        output = json.dumps(observed, separators=(',', ':')).encode('ascii')
     except Exception:
         return 1
-    if len(output) > 4096:
+    if len(output) > _OUTPUT_LIMIT:
         return 1
     sys.stdout.buffer.write(output)
     return 0

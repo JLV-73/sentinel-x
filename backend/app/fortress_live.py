@@ -9,6 +9,7 @@ from urllib.parse import urlsplit
 
 from .fortress_mvp import _public_ip
 
+_OUTPUT_LIMIT = 32768
 _NAMES = {'hsts': b'strict-transport-security', 'csp': b'content-security-policy',
           'x_content_type_options': b'x-content-type-options', 'referrer_policy': b'referrer-policy',
           'permissions_policy': b'permissions-policy'}
@@ -60,6 +61,15 @@ def public_ip(value):
 
 
 def validate_url(url):
+    try:
+        return _validate_url(url)
+    except (ValueError, UnicodeError):
+        pass
+    url = None
+    raise ValueError('invalid URL')
+
+
+def _validate_url(url):
     if not isinstance(url, str) or len(url) > 2048 or not url.isascii() or re.search(r'[\x00-\x20\x7f\\#]', url):
         raise ValueError('invalid URL')
     try:
@@ -94,7 +104,7 @@ def result(target):
     return {'mode': 'live', 'target': target, 'observed_at': datetime.datetime.now(datetime.timezone.utc).isoformat(),
             'http_status': None, 'tls': {'certificate': 'indeterminate', 'hostname': 'indeterminate',
                 'protocol': None, 'not_before': None, 'not_after': None},
-            'headers': {name: 'indeterminate' for name in _NAMES}, 'failure_code': 'unknown'}
+            'headers': {name: 'indeterminate' for name in _NAMES}, 'failure_code': 'unknown', 'advanced': None}
 
 
 def parse_head(data):
@@ -117,6 +127,26 @@ def parse_head(data):
 
 
 def exchange_connected(sock, host, authority, path, context, deadline, out):
+    """Keep raw exchange frames and exceptions behind the transport boundary."""
+    try:
+        return _exchange_connected(sock, host, authority, path, context, deadline, out)
+    except TimeoutError:
+        failure = TimeoutError
+    except ssl.SSLCertVerificationError:
+        failure = ssl.SSLCertVerificationError
+    except ssl.SSLError:
+        failure = ssl.SSLError
+    except ValueError:
+        failure = ValueError
+    except OSError:
+        failure = OSError
+    except Exception:
+        failure = RuntimeError
+    sock = host = authority = path = context = deadline = out = None
+    raise failure('Exchange failed')
+
+
+def _exchange_connected(sock, host, authority, path, context, deadline, out):
     """HEAD on already-connected socket. Caller enforces destination policy."""
     def remaining():
         n = deadline - time.monotonic()
@@ -135,17 +165,31 @@ def exchange_connected(sock, host, authority, path, context, deadline, out):
         tls.settimeout(remaining())
         tls.sendall(('HEAD ' + path + ' HTTP/1.1\r\nHost: ' + authority + '\r\nConnection: close\r\n\r\n').encode('ascii'))
         data = bytearray()
-        while b'\r\n\r\n' not in data and len(data) <= _LIMIT:
-            tls.settimeout(remaining())
-            chunk = tls.recv(min(4096, _LIMIT + 1 - len(data)))
-            if not chunk:
-                break
-            data.extend(chunk)
+        chunk = None
         try:
-            out['http_status'], out['headers'] = parse_head(bytes(data))
-            out['failure_code'] = 'http_refused' if out['http_status'] >= 400 else 'none'
-        except ValueError:
+            while b'\r\n\r\n' not in data and len(data) <= _LIMIT:
+                tls.settimeout(remaining())
+                chunk = tls.recv(min(4096, _LIMIT + 1 - len(data)))
+                if not chunk:
+                    break
+                data.extend(chunk)
+                chunk = None
+            from .fortress_advanced_core import analyze_head_facts, validate_head_facts
+            status, headers = parse_head(bytes(data))
+            facts = analyze_head_facts(bytes(data))
+            if not validate_head_facts(facts):
+                raise ValueError('invalid projection')
+            out['http_status'], out['headers'], out['advanced'] = status, headers, facts
+            out['failure_code'] = 'http_refused' if status >= 400 else 'none'
+        except TimeoutError:
+            out['failure_code'] = 'timeout'
+        except OSError:
+            out['failure_code'] = 'tls_or_transport'
+        except Exception:
             out['failure_code'] = 'incomplete'
+        finally:
+            chunk = None
+            data.clear()
 
 
 def observe(url, timeout=8):

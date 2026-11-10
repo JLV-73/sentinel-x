@@ -8,6 +8,10 @@ describe('live observation contract',()=>{
   const cases:unknown[]=[{...good(),target:input},{...good(),target:'https://other.example/'},{...good(),secret:'x'},{...good(),headers:{...good().headers,hsts:['present']}},{...good(),tls:{...good().tls,hostname:['verified']}},{...good(),http_status:null},{...good(),failure_code:'timeout'},{...good(),observed_at:'yesterday'}];
   for(const raw of cases)expect(()=>parseObservation(raw,input)).toThrow();
  });
+ it('rejects impossible UTC calendar dates without normalizing them',()=>{
+  for(const observed_at of ['2026-02-31T00:00:00Z','2025-02-29T12:00:00+00:00','2026-04-31T23:59:59.123456Z'])expect(()=>parseObservation({...good(),observed_at},input)).toThrow();
+  for(const observed_at of ['2024-02-29T12:00:00Z','2026-04-30T23:59:59.123456+00:00'])expect(parseObservation({...good(),observed_at},input).observed_at).toBe(observed_at);
+ });
  it('rejects TLS and response contradictions while accepting valid failures',()=>{
   const g=good(), headers=Object.fromEntries(Object.keys(g.headers).map(k=>[k,'indeterminate']));
   const blocked={...g,http_status:null,headers,failure_code:'blocked',tls:{certificate:'indeterminate',hostname:'indeterminate',protocol:null,not_before:null,not_after:null}};
