@@ -4,10 +4,10 @@
 
 Apache-2.0 · [English](README.md) · [Contribuer](CONTRIBUTING.md)
 
-## Présentation des sources candidates v0.2.2
+## Présentation des sources candidates v0.2.3
 
-`VERSION` et les métadonnées du paquet frontend indiquent **0.2.2**. Ce candidat
-local n'est ni un tag ni une release v0.2.2 publiés. Cet arbre
+`VERSION` et les métadonnées du paquet frontend indiquent **0.2.3**. Ce candidat
+n'est ni un tag ni une release v0.2.3 publiés. Cet arbre
 source n'établit pas lui-même une publication ou une disponibilité distante ; consulter
 les [Releases GitHub](https://github.com/JLV-73/sentinel-x/releases). L'installation
 ci-dessous est distincte du tableau et du démarrage historiques.
@@ -19,6 +19,16 @@ ci-dessous est distincte du tableau et du démarrage historiques.
 | Fixture DIGITAL FORTRESS | Démonstration locale expérimentale | HTTPS en boucle locale et DNS/pair simulés, pas un audit Internet. |
 | Import / rapport | Import JSON local et export HTML expérimentaux | Observations déclarées, ni authentifiées ni vérifiées indépendamment. |
 | Observation HTTPS | Candidat Windows expérimental | Une tentative HEAD autorisée ; protections et cycle de vie non entièrement qualifiés. |
+
+L'analyse HEAD avancée interprète les faits disponibles sur TLS, HSTS, CSP, les
+cookies et d'autres en-têtes. Le rapport HTML premium FR/EN présente observations
+disponibles, couverture, provenance et limites, sans score artificiel ni attribution
+de vulnérabilité sans preuve. Les résultats HEAD concernent uniquement la route
+et la méthode observées ; un import reste déclaratif, sans attestation indépendante.
+
+Sous Windows, l'annulation immédiate côté serveur et la terminaison des descendants
+après une panne native ne sont pas garanties ; l'exclusion entre tous les comptes
+et sessions n'est pas qualifiée. Voir les [limites expérimentales v0.2.3](docs/DIGITAL_FORTRESS_V023_LIMITES.md).
 
 Voir les [limites DIGITAL FORTRESS v0.2.2](docs/DIGITAL_FORTRESS_V022.fr.md), le
 [guide local](docs/DIGITAL_FORTRESS_LOCAL.md) pour la démonstration et l’import, les
@@ -64,7 +74,7 @@ ni Git Bash.
    Vérifier que HEAD affiché est le SHA candidat vérifié. HEAD détaché est normal.
    Un checkout de commit ne comprend pas les modifications non committées.
 
-   **Alternative stable (v0.2.1, sans les changements du candidat v0.2.2) :**
+   **Alternative stable (v0.2.1, sans les changements du candidat v0.2.3) :**
    confirmer le tag et la Release sur GitHub Releases, puis
    depuis un nouveau dossier parent accessible en écriture :
 
@@ -114,7 +124,7 @@ ni Git Bash.
    une installation neuve affiche **NO DATA**. La synchronisation CISA manuelle
    dans DATA CONTROL est facultative et nécessite Internet ; aucune collecte au
    démarrage. L'observation HTTPS expérimentale du candidat exige une autorisation
-   spécifique et comporte des limites importantes : voir le guide v0.2.2.
+   spécifique et comporte des limites importantes : voir les limites v0.2.3 ci-dessus.
    La fixture expérimentale de boucle locale n'est pas un audit Internet. Garder
    la console du lanceur ouverte ; l'arrêter depuis cette console. Ne jamais exposer
    publiquement ces services locaux ni arrêter un autre processus pour libérer un port.
@@ -153,7 +163,7 @@ L’application tourne chez toi ; tu demandes les données des sources officiell
   correctifs originaux, dates, retraits, gravité et provenance du cache ; attribution CC-BY-4.0.
 - **NIGHTFALL :** cockpit FR/EN, contrôle des sources, FastAPI/SQLite et React/TypeScript.
 
-Aucune collecte au démarrage, surveillance autonome, analyse réseau, alerte ou score
+Aucune collecte au démarrage, surveillance autonome, scanner de vulnérabilités, alerte ou score
 composite. NVD n'est pas collectée exhaustivement. Après CISA, utiliser la commande
 NVD d'une fiche ou les commandes explicites NVD/EPSS du contrôle des sources.
 Les lectures GET restent locales.
@@ -189,7 +199,7 @@ de fond. Ouvrir une fiche/changer de langue ne lit que le cache local. Les donn�
 GitHub Advisory Database sont **CC-BY-4.0**, distinctes du code Apache-2.0 ; attribution
 et JSON d’origine restent disponibles. Voir le [contrat du pilote borné](docs/GHSA_PILOT_CONTRACT.md).
 
-**Choix d’installation :** le démarrage stable sélectionne `v0.2.1`, pas le candidat v0.2.2.
+**Choix d’installation :** le démarrage stable sélectionne `v0.2.1`, pas le candidat v0.2.3.
 La stable antérieure publiée `v0.1.0` (sans GHSA) est une alternative : remplacer
 uniquement `--branch v0.2.1` par `--branch v0.1.0` à l’étape 2. Toujours choisir
 un **nouveau dossier isolé** et conserver tous les prérequis/garde-fous ; ne pas

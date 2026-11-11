@@ -4,10 +4,10 @@
 
 Apache-2.0 · [Français](README.fr.md) · [Contribute](CONTRIBUTING.md)
 
-## v0.2.2 candidate source overview
+## v0.2.3 candidate source overview
 
-`VERSION` and frontend package metadata identify **0.2.2**. This local candidate
-is not a published v0.2.2 tag or release. This source tree
+`VERSION` and frontend package metadata identify **0.2.3**. This candidate
+is not a published v0.2.3 tag or release. This source tree
 does not itself establish publication or remote availability; check
 [GitHub Releases](https://github.com/JLV-73/sentinel-x/releases). The installation
 below is separate from the historical release instructions and version table.
@@ -19,6 +19,16 @@ below is separate from the historical release instructions and version table.
 | DIGITAL FORTRESS fixture | Experimental local demonstration | Loopback HTTPS and simulated DNS/peer, not an Internet audit. |
 | Diagnostic import / report | Experimental local JSON import and HTML export | User-declared observations, not authenticated or independently verified. |
 | HTTPS observation | Experimental Windows candidate | One authorized HEAD attempt; safeguards and lifecycle are not fully qualified. |
+
+The advanced HEAD analysis interprets available TLS, HSTS, CSP, cookie and other
+header facts. The FR/EN premium HTML report presents available observations,
+coverage, provenance and limitations, without an artificial score or unsupported
+vulnerability claim. HEAD results apply only to the observed route and method;
+imports remain declared rather than independently attested.
+
+On Windows, immediate server cancellation and descendant termination after a
+native failure are not guaranteed; exclusion across all accounts and sessions is
+not qualified. See the [v0.2.3 experimental limits](docs/DIGITAL_FORTRESS_V023_LIMITES.md).
 
 See the [v0.2.2 DIGITAL FORTRESS boundaries](docs/DIGITAL_FORTRESS_V022.md),
 [local demo and import guide](docs/DIGITAL_FORTRESS_LOCAL.md),
@@ -62,7 +72,7 @@ are PowerShell, not cmd.exe or Git Bash.
    Check that the printed HEAD is the verified candidate SHA. Detached HEAD is
    expected; a commit checkout does not include uncommitted changes.
 
-   **Stable alternative (v0.2.1, without the v0.2.2 candidate changes):**
+   **Stable alternative (v0.2.1, without the v0.2.3 candidate changes):**
    confirm the tag and Release on GitHub Releases, then from a new writable parent:
 
    ```powershell
@@ -110,7 +120,7 @@ are PowerShell, not cmd.exe or Git Bash.
    distributed: a fresh installation starts with **NO DATA**. A manual CISA sync
    in DATA CONTROL is optional and needs Internet; no collection starts on launch.
    The candidate's experimental HTTPS observation requires specific authorization
-   and has important limitations; see the v0.2.2 guide. The loopback fixture is not an Internet audit. Keep
+   and has important limitations; see the v0.2.3 limits above. The loopback fixture is not an Internet audit. Keep
    the launcher console open; stop it from that console. Never expose these local
    services publicly or terminate an unrelated process to free a port.
 
@@ -182,7 +192,7 @@ only reads the local cache. GitHub Advisory Database data is **CC-BY-4.0**, sepa
 from this project’s Apache-2.0 code; attribution and the original JSON remain available.
 See [the bounded pilot contract](docs/GHSA_PILOT_CONTRACT.md).
 
-**Installation choice:** the quick start selects stable `v0.2.1`, not the v0.2.2 candidate.
+**Installation choice:** the quick start selects stable `v0.2.1`, not the v0.2.3 candidate.
 The earlier published stable `v0.1.0` (without GHSA) is an alternative: replace only `--branch v0.2.1` with
 `--branch v0.1.0` in step 2. Always use a **new isolated directory** and retain
 every prerequisite and safeguard; never reuse an operational checkout or its data.
