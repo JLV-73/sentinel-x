@@ -6,9 +6,10 @@ import ctypes
 import os
 import sys
 import asyncio
+from functools import wraps
 from pathlib import Path
 from datetime import datetime
-from .fortress_live import validate_url, result
+from .fortress_live import validate_url, result, _OUTPUT_LIMIT
 from .fortress_job import run_gated
 from fastapi import HTTPException, Request
 from starlette.concurrency import run_in_threadpool
@@ -74,14 +75,41 @@ def _valid_observation(value, target):
             return False
     elif any(v != 'indeterminate' for v in headers.values()) or value['failure_code'] in ('none', 'http_refused'):
         return False
+    advanced = value['advanced']
+    if status is not None:
+        from .fortress_advanced_core import validate_head_facts
+        if not validate_head_facts(advanced):
+            return False
+        obs = advanced['observations']
+        if obs['http_status'] != status:
+            return False
+        for key in headers:
+            fact = obs[key]
+            expected = 'absent' if fact == 'absent' else 'present'
+            if headers[key] != expected:
+                return False
+    elif advanced is not None:
+        return False
     return True
+
+
+def _unique_pairs(items):
+    obj = {}
+    for key, value in items:
+        if key in obj:
+            raise ValueError('duplicate key')
+        obj[key] = value
+    return obj
 
 
 def _run_live(url, target):
     # Named mutex serializes cooperating API processes across Windows sessions.
-    # Exclusion is held by this worker thread until the supervised child is dead.
+    # Exclusion spans the cleanup attempt, not necessarily confirmed child death:
+    # a native termination/query/close failure can leave death unconfirmed while
+    # the finally block still releases the mutex. Native-fault qualification is
+    # NO GO; do not treat cleanup failure as proof of process termination.
     # Client/UI cancellation does not propagate to this worker; the job deadline
-    # bounds its execution instead, subject to the supervisor's cleanup limits.
+    # bounds acceptance of output, subject to the supervisor's cleanup limits.
     if os.name != 'nt':
         raise RuntimeError('Supervisor unavailable')
     if not _LIVE_LOCK.acquire(blocking=False):
@@ -106,10 +134,23 @@ def _run_live(url, target):
         code = "import sys;sys.path.insert(0,sys.argv[1]);from app.fortress_live_worker import main;raise SystemExit(main())"
         try:
             raw = run_gated([sys.executable, '-c', code, backend], 10, json.dumps(url).encode('ascii'))
-            if len(raw) > 4096:
-                raise ValueError('Invalid result')
-            value = json.loads(raw)
-            if not _valid_observation(value, target):
+            # Defense in depth for substituted supervisors; real reads are bounded.
+            value = None
+            rejected = False
+            try:
+                if len(raw) > _OUTPUT_LIMIT:
+                    raise ValueError('Invalid result')
+                value = json.loads(raw, object_pairs_hook=_unique_pairs)
+                if not _valid_observation(value, target):
+                    raise ValueError('Invalid result')
+            except Exception:
+                # Drop the parser/validator exception and its potentially sensitive
+                # frames before raising a fresh, unchained error below.
+                value = None
+                rejected = True
+            finally:
+                raw = None
+            if rejected:
                 raise ValueError('Invalid result')
             return value
         except TimeoutError:
@@ -159,8 +200,24 @@ def _guard(request, origins):
         raise HTTPException(422, 'Query parameters not accepted')
 
 
+def _private_errors(handler):
+    @wraps(handler)
+    async def boundary(request: Request):
+        try:
+            return await handler(request)
+        except HTTPException as exc:
+            error = HTTPException(exc.status_code, exc.detail, headers=exc.headers)
+        except Exception:
+            error = RuntimeError('Request failed')
+        # Raise outside the handler's except block: neither its traceback nor
+        # its implicit context should retain the parsed request body.
+        raise error
+    return boundary
+
+
 def install_disabled_route(app, origins):
     @app.post('/api/fortress/audit')
+    @_private_errors
     async def audit(request: Request):
         _guard(request, origins)
         tokens = request.headers.getlist('x-sentinel-capability')
@@ -197,6 +254,7 @@ def install_disabled_route(app, origins):
         return JSONResponse({'capability': _CAPABILITY}, headers={'Cache-Control': 'no-store'})
 
     @app.post('/api/fortress/mvp/demo')
+    @_private_errors
     async def demo(request: Request):
         _guard(request, origins)
         tokens = request.headers.getlist('x-sentinel-capability')
