@@ -175,7 +175,7 @@ def _parse_response(data, out):
 
 
 def _public_ip(value):
-    # Derived from the Bubble probe: reject mixed/private/scoped answers.
+    # Reject mixed/private/scoped DNS answers.
     if '%' in value:
         raise ValueError('scoped address')
     ip = ipaddress.ip_address(value)
@@ -214,7 +214,7 @@ def _public_socket(host, deadline):
         raise
 
 
-def _https_exchange(client, hostname, context, out, target='/'):
+def _https_exchange(client, hostname, context, out, target='/', *, _fixture_response=None):
     """Single TLS/GET/parse engine; connected socket is supplied by trusted code only."""
     if context.verify_mode != ssl.CERT_REQUIRED or not context.check_hostname:
         raise ValueError('unsafe TLS context')
@@ -239,6 +239,8 @@ def _https_exchange(client, hostname, context, out, target='/'):
                 raise ValueError('response limit')
         if not _parse_response(data, out):
             out['failure_code'] = 'incomplete'
+        elif _fixture_response is not None:
+            _fixture_response(data)
 
 
 def _run_fixture(scenario, response=None):

@@ -44,13 +44,19 @@ class _Accounting(ctypes.Structure):
                 ('ActiveProcesses', wintypes.DWORD), ('TotalTerminatedProcesses', wintypes.DWORD)]
 
 
-def run_gated(args, timeout, payload=b''):
+class OutputLimitExceeded(ValueError):
+    """The bounded worker output exceeded its configured capacity."""
+
+
+def run_gated(args, timeout, payload=b'', *, output_limit=_OUTPUT_LIMIT):
     """Run a trusted gated child in a kill-on-close job, or fail closed.
 
     Timeout starts before process creation. Stdout is bounded while read;
     stderr is discarded. Output is returned only after successful child exit
     and job cleanup. This helper does not provide concurrent-request locking.
     """
+    if type(output_limit) is not int or not 1 <= output_limit <= 262144:
+        raise ValueError('invalid output limit')
     if os.name != 'nt' or timeout <= 0:
         raise RuntimeError('Windows job unavailable')
     deadline = time.monotonic() + timeout
@@ -97,10 +103,10 @@ def run_gated(args, timeout, payload=b''):
         def read_output():
             try:
                 while True:
-                    chunk = child.stdout.read(min(4096, _OUTPUT_LIMIT + 1 - len(output)))
+                    chunk = child.stdout.read(min(4096, output_limit + 1 - len(output)))
                     if not chunk:
                         break
-                    if len(output) + len(chunk) > _OUTPUT_LIMIT:
+                    if len(output) + len(chunk) > output_limit:
                         state['overflow'] = True
                         break
                     output.extend(chunk)
@@ -128,7 +134,7 @@ def run_gated(args, timeout, payload=b''):
         if not finished.wait(max(0, deadline - time.monotonic())):
             raise TimeoutError('job deadline')
         if state['overflow']:
-            raise ValueError('Invalid result')
+            raise OutputLimitExceeded('Invalid result')
         if state['read_error']:
             raise RuntimeError('child pipe failed')
         try:
