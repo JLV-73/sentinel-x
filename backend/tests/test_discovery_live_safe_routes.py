@@ -63,7 +63,7 @@ def test_old_live_alias_contract_remains_accepted(monkeypatch):
 def test_api_parent_accepts_safe_projection_only(monkeypatch):
     answer = invoke(b'HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n')
     monkeypatch.setattr(transport, 'exchange_observed', lambda *args: answer)
-    monkeypatch.setattr(worker, 'run_gated', lambda argv, timeout, payload:
+    monkeypatch.setattr(worker, 'run_gated', lambda argv, timeout, payload, **kwargs:
                         json.dumps(worker._discovery_observed_live(json.loads(payload))).encode())
     client, auth = client_and_auth()
     result = client.post('/api/fortress/discovery/live', headers=auth, json={

@@ -142,9 +142,9 @@ def test_api_dynamic_real_supervised_tls(monkeypatch, redirect, private_view):
     thread = threading.Thread(target=serve)
     thread.start()
     backend = str(Path(worker.__file__).resolve().parents[1])
-    def gate(argv, timeout, payload):
+    def gate(argv, timeout, payload, **kwargs):
         args = [sys.executable, '-I', '-B', str(Path(fixture.__file__).resolve()), 'fixture-child', backend, 'live_tls', str(port), '']
-        return run_gated(args, timeout, payload)
+        return run_gated(args, timeout, payload, **kwargs)
     monkeypatch.setattr(worker, 'run_gated', gate)
     client, auth = client_and_auth()
     limits = {'pages': 3, 'requests': 4, 'depth': 1, 'interval': 1,

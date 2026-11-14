@@ -62,7 +62,7 @@ def test_diagnostic_contract_rejects_invalid_and_accepts_historical(monkeypatch)
 def test_asgi_dns_diagnostic_reaches_api_without_secret(monkeypatch):
     from test_fortress_discovery_vertical import client_and_auth
     monkeypatch.setattr(transport.socket, 'getaddrinfo', lambda *a: (_ for _ in ()).throw(socket.gaierror('SECRET')))
-    monkeypatch.setattr(worker, 'run_gated', lambda argv, timeout, payload: json.dumps(worker._discovery_observed_live(json.loads(payload))).encode())
+    monkeypatch.setattr(worker, 'run_gated', lambda argv, timeout, payload, **kwargs: json.dumps(worker._discovery_observed_live(json.loads(payload))).encode())
     client, auth = client_and_auth()
     response = client.post('/api/fortress/discovery/live', headers=auth,
                            json={'authorized': True, 'target': 'https://example.invalid/', 'routes': ['/']})
@@ -92,7 +92,7 @@ def test_partial_response_through_worker_and_asgi(monkeypatch):
     from test_fortress_discovery_vertical import client_and_auth
     from unittest.mock import patch
     sock = FakeSocket(b'HTTP/1.1 302 Found\r\nLocation: /secret\r\nSet-Cookie: secret=value\r\nContent-Length: 8\r\n\r\nx', IP)
-    def gate(argv, timeout, payload):
+    def gate(argv, timeout, payload, **kwargs):
         with patch.object(transport.socket, 'getaddrinfo', return_value=[row()]), \
              patch.object(transport.socket, 'socket', return_value=sock), \
              patch.object(transport.ssl, 'SSLContext', return_value=FakeContext()):

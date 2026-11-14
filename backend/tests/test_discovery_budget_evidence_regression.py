@@ -55,7 +55,7 @@ def test_deadline_through_worker_and_asgi(monkeypatch):
                 {'phase': 'timeout', 'requests_sent': 1, 'responses_received': 1})
     monkeypatch.setattr(policy, 'discover_observed', timed_policy)
     monkeypatch.setattr(transport, 'capture_observed', capture)
-    monkeypatch.setattr(worker, 'run_gated', lambda argv, timeout, payload:
+    monkeypatch.setattr(worker, 'run_gated', lambda argv, timeout, payload, **kwargs:
                         json.dumps(worker._discovery_observed_live(json.loads(payload))).encode())
     client, auth = client_and_auth()
     response = client.post('/api/fortress/discovery/live', headers=auth,

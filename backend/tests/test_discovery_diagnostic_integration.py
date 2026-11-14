@@ -75,11 +75,11 @@ def test_asgi_supervised_loopback_tls_diagnostic(monkeypatch, tmp_path, trusted,
     thread.start()
     backend = str(Path(worker.__file__).resolve().parents[1])
     gates = []
-    def gate(argv, timeout, payload):
+    def gate(argv, timeout, payload, **kwargs):
         gates.append(True)
         args = [sys.executable, '-I', '-B', str(Path(fixture.__file__).resolve()),
                 'fixture-child', backend, 'live_tls', str(port), '']
-        return run_gated(args, timeout, payload)
+        return run_gated(args, timeout, payload, **kwargs)
     monkeypatch.setattr(worker, 'run_gated', gate)
     client, auth = client_and_auth()
     try:

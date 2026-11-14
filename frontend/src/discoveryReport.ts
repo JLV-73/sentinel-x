@@ -142,7 +142,7 @@ function validate(input: unknown): asserts input is DiscoveryReport {
   record(input, ['provenance', 'completeness', 'limits', 'pages', 'relations', 'resources', ...((input && typeof input === 'object' && Object.prototype.hasOwnProperty.call(input, 'security')) ? ['security'] : []), ...((input && typeof input === 'object' && Object.prototype.hasOwnProperty.call(input, 'crawl')) ? ['crawl'] : [])]);
   member(input.provenance, ['synthetic', 'imported', 'declared_observation', 'lab']); member(input.completeness, ['complete', 'incomplete']);
   list(input.limits, 5); for (const limit of input.limits) member(limit, ['restricted_access', 'scope', 'budget', 'transport', 'unknown']);
-  list(input.pages, 500); list(input.relations, 2000); list(input.resources, 2000);
+  list(input.pages, 999); list(input.relations, 2000); list(input.resources, 2000);
   const pageLabels = new Set<string>();
   for (const page of input.pages) {
     record(page, ['route', 'depth', 'status', 'state', 'observations', ...((page && typeof page === 'object' && Object.hasOwn(page, 'label')) ? ['label'] : []), ...((page && typeof page === 'object' && Object.hasOwn(page, 'sanitizedPath')) ? ['sanitizedPath'] : []), ...((page && typeof page === 'object' && Object.hasOwn(page, 'partial_headers')) ? ['partial_headers'] : [])]); list(page.route, 20);

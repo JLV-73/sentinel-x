@@ -27,7 +27,7 @@ it('validates every budget, resets consent after changes, and posts chosen value
  expect(start).toBeDisabled();fireEvent.click(screen.getByLabelText(/I confirm I am authorized/i));fireEvent.click(start);
  await screen.findByTitle(/discovery report preview/i);expect(screen.getByText(/partial or incomplete result/i)).toBeInTheDocument();
  const posts=fetcher.mock.calls.filter(([u])=>String(u).endsWith('/discovery/live'));expect(posts).toHaveLength(1);
- expect(JSON.parse(String(posts[0][1]?.body))).toEqual({authorized:true,target:'https://example.org',routes:['/'],limits:{pages:4,requests:9,depth:0,interval:2,page_bytes:1000,total_bytes:2000,seconds:90}});
+ expect(JSON.parse(String(posts[0][1]?.body))).toEqual({authorized:true,target:'https://example.org/',routes:['/'],limits:{pages:4,requests:9,depth:0,interval:2,page_bytes:1000,total_bytes:2000,seconds:90}});
 });
 it('cleans the timer on invalidation while a capability fetch ignores abort',async()=>{
  localStorage.setItem(localeKey,'en');vi.useFakeTimers();

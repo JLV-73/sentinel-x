@@ -273,7 +273,7 @@ def install_disabled_route(app, origins):
                     or ('private_view' in data and type(data['private_view']) is not bool) or type(data['target']) is not str
                     or type(data['routes']) is not list or any(type(r) is not str for r in data['routes'])):
                 raise HTTPException(422, 'Invalid body')
-            from .fortress_discovery_worker import validate_live_scope, validate_dynamic_scope, run_observed_live
+            from .fortress_discovery_worker import validate_live_scope, validate_dynamic_scope, run_observed_live, DiscoveryOutputLimitExceeded
             try:
                 if 'limits' in data:
                     validate_dynamic_scope(data['target'], data['routes'], data['limits'])
@@ -290,6 +290,8 @@ def install_disabled_route(app, origins):
                     value = await run_in_threadpool(run_observed_live, data['target'], data['routes'])
             except BlockingIOError:
                 raise HTTPException(409, 'Discovery busy') from None
+            except DiscoveryOutputLimitExceeded:
+                raise HTTPException(503, 'Discovery output capacity exceeded; observations unavailable') from None
             except Exception:
                 raise HTTPException(503, 'Discovery live unavailable') from None
             from .fortress_discovery_contract import valid_live

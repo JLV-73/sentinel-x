@@ -15,7 +15,11 @@ import sys
 import threading
 import time
 
-from .fortress_job import run_gated
+from .fortress_job import run_gated, OutputLimitExceeded
+
+
+class DiscoveryOutputLimitExceeded(RuntimeError):
+    """The discovery result cannot be returned within the output budget."""
 
 _lock = threading.Lock()
 
@@ -145,6 +149,8 @@ def run_observed_live(target, routes, limits=None, private_view=False):
         return _run_observed_live(target, routes, limits, private_view)
     except BlockingIOError:
         failure = 'busy'
+    except OutputLimitExceeded:
+        failure = 'capacity'
     except (ValueError, TypeError):
         failure = 'scope'
     except Exception:
@@ -152,6 +158,8 @@ def run_observed_live(target, routes, limits=None, private_view=False):
     target = routes = limits = None
     if failure == 'busy':
         raise BlockingIOError('worker busy')
+    if failure == 'capacity':
+        raise DiscoveryOutputLimitExceeded('discovery output capacity exceeded; observations unavailable')
     if failure == 'scope':
         raise ValueError('invalid scope')
     raise RuntimeError('discovery worker unavailable')
@@ -177,7 +185,7 @@ def _run_observed_live(target, routes, requested_limits=None, private_view=False
     try:
         backend = str(Path(__file__).resolve().parents[1])
         code = "import sys;sys.path.insert(0,sys.argv[1]);from app.fortress_discovery_worker import _child;raise SystemExit(_child())"
-        raw = run_gated([sys.executable, '-I', '-c', code, backend], limits.seconds if dynamic else 120, payload)
+        raw = run_gated([sys.executable, '-I', '-c', code, backend], limits.seconds if dynamic else 120, payload, output_limit=262144)
         try:
             result = json.loads(raw, object_pairs_hook=_unique_object)
         except (ValueError, UnicodeError, RecursionError):

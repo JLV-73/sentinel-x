@@ -10,7 +10,7 @@ def test_api_to_live_worker_with_in_process_exchange(monkeypatch):
     response = invoke(b'HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n')
     calls = []
     monkeypatch.setattr(transport, 'exchange_observed', lambda *args: calls.append(args) or response)
-    def gated(argv, timeout, payload):
+    def gated(argv, timeout, payload, **kwargs):
         data = json.loads(payload)
         assert data['mode'] == 'observed_live'
         return json.dumps(worker._discovery_observed_live(data)).encode()
@@ -35,7 +35,7 @@ def test_api_preserves_unsupported_success_as_incomplete(monkeypatch, status):
     assert response['status'] == status
     assert response['links'] == []
     monkeypatch.setattr(transport, 'exchange_observed', lambda *args: response)
-    monkeypatch.setattr(worker, 'run_gated', lambda argv, timeout, payload:
+    monkeypatch.setattr(worker, 'run_gated', lambda argv, timeout, payload, **kwargs:
                         json.dumps(worker._discovery_observed_live(json.loads(payload))).encode())
     client, auth = client_and_auth()
     result = client.post('/api/fortress/discovery/live', headers=auth,
@@ -70,7 +70,7 @@ def test_exclusion_before_unsupported_success_preserves_unknown(monkeypatch, sta
         calls.append(url)
         return ok if url.endswith('/') else unsupported
     monkeypatch.setattr(transport, 'exchange_observed', exchange)
-    monkeypatch.setattr(worker, 'run_gated', lambda argv, timeout, payload:
+    monkeypatch.setattr(worker, 'run_gated', lambda argv, timeout, payload, **kwargs:
                         json.dumps(worker._discovery_observed_live(json.loads(payload))).encode())
     client, auth = client_and_auth()
     response = client.post('/api/fortress/discovery/live', headers=auth,
@@ -99,7 +99,7 @@ def test_exclusion_does_not_override_other_stop_reasons(monkeypatch, raw, reason
     stopped = invoke(raw)
     monkeypatch.setattr(transport, 'exchange_observed',
                         lambda url, *args: ok if url.endswith('/') else stopped)
-    monkeypatch.setattr(worker, 'run_gated', lambda argv, timeout, payload:
+    monkeypatch.setattr(worker, 'run_gated', lambda argv, timeout, payload, **kwargs:
                         json.dumps(worker._discovery_observed_live(json.loads(payload))).encode())
     client, auth = client_and_auth()
     response = client.post('/api/fortress/discovery/live', headers=auth,
@@ -122,7 +122,7 @@ def test_api_accepts_complete_live_204_no_content(monkeypatch, mixed):
         calls.append(url)
         return ok if mixed and url.endswith('/') else no_content
     monkeypatch.setattr(transport, 'exchange_observed', exchange)
-    def gated(argv, timeout, payload):
+    def gated(argv, timeout, payload, **kwargs):
         return json.dumps(worker._discovery_observed_live(json.loads(payload))).encode()
     monkeypatch.setattr(worker, 'run_gated', gated)
     client, auth = client_and_auth()
@@ -147,7 +147,7 @@ def test_api_accepts_complete_live_204_no_content(monkeypatch, mixed):
     ('https://example.invalid/', ['/', '/bundle.js']), ('https://example.invalid/', ['/', '/style.css']),
 ])
 def test_invalid_scope_never_reaches_worker(monkeypatch, target, routes):
-    monkeypatch.setattr(worker, 'run_gated', lambda *args: pytest.fail('worker reached'))
+    monkeypatch.setattr(worker, 'run_gated', lambda *args, **kwargs: pytest.fail('worker reached'))
     client, auth = client_and_auth()
     result = client.post('/api/fortress/discovery/live', headers=auth,
                          json={'authorized': True, 'target': target, 'routes': routes})
@@ -155,7 +155,7 @@ def test_invalid_scope_never_reaches_worker(monkeypatch, target, routes):
 
 
 def test_live_requires_consent_capability_and_rejects_client_provenance(monkeypatch):
-    monkeypatch.setattr(worker, 'run_gated', lambda *args: pytest.fail('worker reached'))
+    monkeypatch.setattr(worker, 'run_gated', lambda *args, **kwargs: pytest.fail('worker reached'))
     client, auth = client_and_auth()
     payload = {'authorized': True, 'target': 'https://example.invalid/', 'routes': ['/']}
     assert client.post('/api/fortress/discovery/live', json=payload).status_code == 403
@@ -166,7 +166,7 @@ def test_live_requires_consent_capability_and_rejects_client_provenance(monkeypa
 def test_worker_rejects_lab_provenance_and_duplicate_keys(monkeypatch):
     for raw in (b'{"schema":"fortress.discovery/1","provenance":"live","provenance":"lab"}',
                 b'{"schema":"fortress.discovery/1","provenance":"lab"}'):
-        monkeypatch.setattr(worker, 'run_gated', lambda *args: raw)
+        monkeypatch.setattr(worker, 'run_gated', lambda *args, **kwargs: raw)
         with pytest.raises(RuntimeError):
             worker.run_observed_live('https://example.invalid/', ['/'])
 
@@ -239,7 +239,7 @@ def test_live_complete_rejects_contradictory_worker_results(monkeypatch):
 
 
 def test_oversized_scope_is_rejected_before_launch(monkeypatch):
-    monkeypatch.setattr(worker, 'run_gated', lambda *args: pytest.fail('worker launched'))
+    monkeypatch.setattr(worker, 'run_gated', lambda *args, **kwargs: pytest.fail('worker launched'))
     client, auth = client_and_auth()
     routes = ['/'] + ['/r' + str(i) + 'x' * 220 for i in range(10)]
     result = client.post('/api/fortress/discovery/live', headers=auth,
@@ -304,7 +304,7 @@ def test_rate_limit_wait_tolerates_early_sleep():
 
 def test_parent_reject_drops_untrusted_result_locals(monkeypatch):
     import traceback
-    monkeypatch.setattr(worker, 'run_gated', lambda *args: b'{"secret":"SECRET_INVALID_RESULT"}')
+    monkeypatch.setattr(worker, 'run_gated', lambda *args, **kwargs: b'{"secret":"SECRET_INVALID_RESULT"}')
     with pytest.raises(RuntimeError) as error:
         worker.run_observed_live('https://example.invalid/', ['/'])
     captured = traceback.TracebackException.from_exception(error.value, capture_locals=True)

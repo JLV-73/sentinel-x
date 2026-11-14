@@ -83,7 +83,7 @@ def _valid(value, provenance):
     from . import fortress_advanced_core as core
     try:
         keys = {'schema', 'provenance', 'complete', 'reason', 'requests', 'bytes', 'pages', 'relations', 'resources', 'limits'}
-        if (type(value) is not dict or not keys <= set(value) or set(value) - keys - {'diagnostic', 'exclusion_reasons', 'private_paths'}
+        if (type(value) is not dict or not keys <= set(value) or set(value) - keys - {'diagnostic', 'exclusion_reasons', 'private_paths', 'graph_omitted_relations'}
                 or value['schema'] != 'fortress.discovery/1' or value['provenance'] != provenance
                 or type(value['complete']) is not bool or value['reason'] not in ('none', 'unknown', 'scope_blocked', 'transport_error', 'request_limit', 'page_limit', 'byte_limit', 'duration_limit', 'redirect_blocked', 'redirect_loop', 'incomplete', 'http_refused', 'depth_limit')
                 or value['complete'] != (value['reason'] == 'none')
@@ -174,6 +174,8 @@ def _valid(value, provenance):
                     or not any(page['status'] in (200, 204) for page in value['pages'])
                     or any(page['status'] not in (200, 204, 301, 302, 303, 307, 308) for page in value['pages'])):
                 return False
+        if 'graph_omitted_relations' in value and (type(value['graph_omitted_relations']) is not int or not 1 <= value['graph_omitted_relations'] <= 30000 or value['graph_omitted_relations'] + len(value['relations']) > 30000):
+            return False
         if type(value['relations']) is not list or len(value['relations']) > 1000:
             return False
         seen_relations, unresolved = set(), set()

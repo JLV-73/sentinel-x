@@ -49,9 +49,9 @@ def test_resource_inventory_through_supervised_tls_and_api(monkeypatch):
     thread = threading.Thread(target=serve)
     thread.start()
     backend = str(Path(worker.__file__).resolve().parents[1])
-    def gate(argv, timeout, payload):
+    def gate(argv, timeout, payload, **kwargs):
         return run_gated([sys.executable, '-I', '-B', str(Path(fixture.__file__).resolve()),
-                          'fixture-child', backend, 'live_tls', str(port), ''], timeout, payload)
+                          'fixture-child', backend, 'live_tls', str(port), ''], timeout, payload, **kwargs)
     monkeypatch.setattr(worker, 'run_gated', gate)
     client, auth = client_and_auth()
     limits = {'pages': 3, 'requests': 4, 'depth': 1, 'interval': 1,

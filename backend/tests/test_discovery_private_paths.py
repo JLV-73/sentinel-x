@@ -32,7 +32,7 @@ def test_api_opt_in_and_worker_validation(monkeypatch):
     from test_fortress_discovery_vertical import client_and_auth
     answer = invoke(b'HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n')
     monkeypatch.setattr(transport, 'capture_observed', lambda *args: (answer, {'phase': 'none', 'requests_sent': 1, 'responses_received': 1}))
-    def gate(argv, timeout, payload):
+    def gate(argv, timeout, payload, **kwargs):
         return json.dumps(worker._discovery_observed_live(json.loads(payload))).encode()
     monkeypatch.setattr(worker, 'run_gated', gate)
     client, auth = client_and_auth()
@@ -53,15 +53,15 @@ def test_api_opt_in_and_worker_validation(monkeypatch):
         corrupt = copy.deepcopy(value)
         corrupt['private_paths'] = bad
         assert not valid_live(corrupt)
-        monkeypatch.setattr(worker, 'run_gated', lambda *args, c=corrupt: json.dumps(c).encode())
+        monkeypatch.setattr(worker, 'run_gated', lambda *args, c=corrupt, **kwargs: json.dumps(c).encode())
         assert client.post('/api/fortress/discovery/live', headers=auth, json={**base, 'private_view': True}).status_code == 503
-    monkeypatch.setattr(worker, 'run_gated', lambda *args: json.dumps(value).encode())
+    monkeypatch.setattr(worker, 'run_gated', lambda *args, **kwargs: json.dumps(value).encode())
     assert client.post('/api/fortress/discovery/live', headers=auth, json=base).status_code == 503
 
 
 def test_private_timeout_does_not_retain_scope_in_worker_trace(monkeypatch):
     import traceback
-    def timeout(*args):
+    def timeout(*args, **kwargs):
         raise TimeoutError('SECRET_TIMEOUT')
     monkeypatch.setattr(worker, 'run_gated', timeout)
     try:

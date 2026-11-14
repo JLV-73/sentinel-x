@@ -15,7 +15,7 @@ def test_304_metadata_reaches_api_without_page_analysis_or_fake_redirect(monkeyp
                       b'Content-Encoding: br\r\nLocation: /next\r\n\r\n')
     assert response['status'] == 304 and response['links'] == [] and response['location'] is None
     monkeypatch.setattr(transport, 'exchange_observed', lambda *args: response)
-    monkeypatch.setattr(worker, 'run_gated', lambda argv, timeout, payload:
+    monkeypatch.setattr(worker, 'run_gated', lambda argv, timeout, payload, **kwargs:
                         json.dumps(worker._discovery_observed_live(json.loads(payload))).encode())
     client, auth = client_and_auth()
     result = client.post('/api/fortress/discovery/live', headers=auth,

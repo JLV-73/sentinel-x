@@ -5,12 +5,12 @@ import DiscoveryReal from './components/DiscoveryReal';
 afterEach(()=>{cleanup();localStorage.clear();vi.restoreAllMocks();});
 const capability={schema:'fortress.discovery-capability/1',lab:true,live:true};
 const blocked={schema:'fortress.discovery/1',provenance:'live',complete:false,reason:'scope_blocked',requests:0,bytes:0,pages:[],relations:[],resources:[],limits:['excluded_links:0','no_external_requests','no_authentication','headers_only_analysis','not_a_vulnerability_or_compliance_conclusion']};
-it.each(['fr','en'] as const)('requires verified capability and specific consent before posting exact scope (%s)',async locale=>{
+it.each([['fr','https://example.org'],['en','https://example.org'],['fr','https://example.org/'],['en','https://example.org/']] as const)('requires consent and posts the canonical scope (%s, %s)',async (locale,target)=>{
  localStorage.setItem(localeKey,locale);
  const fetcher=vi.spyOn(globalThis,'fetch').mockImplementation(async u=>new Response(JSON.stringify(String(u).includes('/discovery/capability')?capability:String(u).includes('/mvp/capability')?{capability:'a'.repeat(32)}:blocked)));
  render(<LocaleProvider><DiscoveryReal/></LocaleProvider>);
  const start=screen.getByRole('button',{name:/start discovery|démarrer discovery/i});
- fireEvent.change(screen.getByLabelText(/discovery https origin|origine https discovery/i),{target:{value:'https://example.org'}});
+ fireEvent.change(screen.getByLabelText(/discovery https origin|origine https discovery/i),{target:{value:target}});
  expect(start).toBeDisabled();fireEvent.click(screen.getByRole('button',{name:/check discovery capability|vérifier la capacité discovery/i}));
  await screen.findByText(/live capability verified|capacité réelle vérifiée/i);expect(start).toBeDisabled();
  expect(fetcher.mock.calls.filter(([u])=>String(u).endsWith('/discovery/live'))).toHaveLength(0);
@@ -18,7 +18,7 @@ it.each(['fr','en'] as const)('requires verified capability and specific consent
  await screen.findByTitle(/discovery report preview|aperçu du rapport discovery/i);
  const post=fetcher.mock.calls.find(([u])=>String(u).endsWith('/discovery/live'))!;
  expect(fetcher.mock.calls.filter(([u])=>String(u).endsWith('/discovery/live'))).toHaveLength(1);
- expect(JSON.parse(String(post[1]?.body))).toEqual({authorized:true,target:'https://example.org',routes:['/'],limits:{pages:5,requests:10,depth:1,interval:1,page_bytes:524288,total_bytes:3145728,seconds:120}});
+ expect(JSON.parse(String(post[1]?.body))).toEqual({authorized:true,target:'https://example.org/',routes:['/'],limits:{pages:5,requests:10,depth:1,interval:1,page_bytes:524288,total_bytes:3145728,seconds:120}});
  expect(fetcher.mock.calls.every(([u])=>String(u).startsWith('http://127.0.0.1:8007/'))).toBe(true);
  expect(screen.getByTitle(/discovery report preview|aperçu du rapport discovery/i).getAttribute('srcdoc')).toMatch(/scope|périmètre/i);
 });

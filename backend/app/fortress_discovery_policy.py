@@ -373,9 +373,18 @@ def discover_observed(origin, routes, start, exchange, *, limits=None, clock=tim
     reasons['depth'] = sum(target not in reachable for target in depth_candidates)
     excluded[0] += reasons['depth']
     aliases = {page[0]: f'page-{i}' for i, page in enumerate(pages, 1)}
-    for source, target, kind in edges:
+    # Prioritize observed endpoints; never let speculative destinations displace
+    # an observed page. Count omitted unique relations independently of crawl state.
+    node_limit = 999 if _live_paths else 500
+    ordered = sorted(edges, key=lambda edge: edge[1] not in aliases)
+    retained = []
+    for source, target, kind in ordered:
+        if len(retained) >= 1000 or (target not in aliases and len(aliases) >= node_limit):
+            continue
         if target not in aliases:
             aliases[target] = f'page-{len(aliases) + 1}'
+        retained.append((source, target, kind))
+    omitted_relations = len(edges) - len(retained)
     projected = []
     for path, depth, status, state, observed_at, observations, findings, partial_headers in pages:
         alias = aliases[path]
@@ -395,10 +404,12 @@ def discover_observed(origin, routes, start, exchange, *, limits=None, clock=tim
     reason = 'unknown' if outcome['reason'] == 'scope_blocked' else outcome['reason']
     result = {'schema': 'fortress.discovery/1', 'provenance': 'lab', 'complete': outcome['complete'],
             'reason': reason, 'requests': outcome['requests'], 'bytes': outcome['bytes'], 'exclusion_reasons': reasons,
-            'pages': projected, 'relations': [{'from': aliases[a], 'to': aliases[b], 'kind': k} for a, b, k in edges],
+            'pages': projected, 'relations': [{'from': aliases[a], 'to': aliases[b], 'kind': k} for a, b, k in retained],
             'resources': [{'page': aliases[path], 'kind': kind, 'count': count} for path, kind, count in resource_counts],
             'limits': ['lab_only', 'excluded_links:' + str(excluded[0]),
                  'no_external_requests', 'no_authentication', 'headers_only_analysis', 'not_a_vulnerability_or_compliance_conclusion']}
+    if omitted_relations:
+        result['graph_omitted_relations'] = omitted_relations
     if private_view is True:
         from .fortress_discovery_private import project
         result['private_paths'] = [{'id': alias, 'path': project(path)} for path, alias in aliases.items()]

@@ -111,7 +111,7 @@ def test_loopback_tls_worker_asgi(monkeypatch, status, framing):
     thread = threading.Thread(target=serve)
     thread.start()
     backend = str(Path(worker.__file__).resolve().parents[1])
-    def gate(argv, timeout, payload):
+    def gate(argv, timeout, payload, **kwargs):
         return run_gated([sys.executable, '-I', '-B', str(Path(fixture.__file__).resolve()),
                           'fixture-child', backend, 'live_tls', str(port), ''], timeout, payload)
     monkeypatch.setattr(worker, 'run_gated', gate)
