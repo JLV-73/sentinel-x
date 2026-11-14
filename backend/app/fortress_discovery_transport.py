@@ -326,7 +326,7 @@ def _reference(value, base):
         if not value or len(value) > 2048 or not value.isascii() or re.search(r'[\x00-\x20\x7f\\%?#]', value):
             return None
         raw = urlsplit(value)
-        if any(p in ('.', '..') for p in raw.path.split('/')) or '//' in raw.path:
+        if (raw.scheme and not raw.netloc) or any(p in ('.', '..') for p in raw.path.split('/')) or '//' in raw.path:
             return None
         resolved = urljoin(base, value)
         source = _target(base)
@@ -341,11 +341,58 @@ def _reference(value, base):
 class _Links(HTMLParser):
     def __init__(self, base, *, report_excluded=False):
         super().__init__(convert_charrefs=True)
-        self.base, self.links, self.count = base, [], 0
+        self.base, self.count = base, 0
+        self._hrefs = []
+        self._base_seen = False
+        self._document_base = base
         self.report_excluded = report_excluded
         self.resources = {'script': 0, 'stylesheet': 0}
 
+    @property
+    def links(self):
+        # Defer resolution: the first base applies even to earlier anchors.
+        links = []
+        for value in self._hrefs:
+            independent = False
+            try:
+                raw = urlsplit(value)
+                independent = bool(raw.scheme or raw.netloc)
+                base = self.base if independent else self._document_base
+                link = _reference(value, base) if base is not None else None
+                if link is not None and self._base_seen and not independent:
+                    link = urljoin(base, link)
+            except (ValueError, UnicodeError):
+                raw, link = None, None
+            if link is not None:
+                links.append(link)
+            elif self.report_excluded:
+                links.append(None)
+            elif self._base_seen and not independent and self._document_base is None:
+                continue
+            else:
+                # Preserve the legacy treatment of valid external references.
+                try:
+                    if (raw and raw.scheme in ('http', 'https', '') and raw.netloc
+                            and '?' not in value and '#' not in value):
+                        target = _target('https://' + raw.netloc + raw.path)
+                        if raw.scheme == 'http' or target[:2] != _target(self.base)[:2]:
+                            continue
+                except (ValueError, UnicodeError):
+                    pass
+                raise ValueError()
+        return links
+
     def handle_starttag(self, tag, attrs):
+        if tag == 'base' and not self._base_seen:
+            values = [v for k, v in attrs if k == 'href']
+            if values:
+                self._base_seen = True
+                value = values[0]
+                if len(values) != 1 or not isinstance(value, str):
+                    self._document_base = None
+                elif value:
+                    self._document_base = (urljoin(self.base, value)
+                                           if _reference(value, self.base) is not None else None)
         # Count tags only; resource values are never retained or resolved.
         if self.report_excluded and tag in ('script', 'link'):
             values = [v for k, v in attrs if k == ('src' if tag == 'script' else 'href')]
@@ -365,26 +412,7 @@ class _Links(HTMLParser):
         self.count += 1
         if self.count > 1000 or len(values) != 1 or not isinstance(values[0], str):
             raise ValueError()
-        value = values[0]
-        link = _reference(value, self.base)
-        if link is None:
-            if self.report_excluded:
-                self.links.append(None)
-                return
-            # Ignore only valid HTTP(S) absolute or network-path links to
-            # another origin; never return or resolve them over the network.
-            try:
-                raw = urlsplit(value)
-                if (raw.scheme in ('http', 'https', '') and raw.netloc
-                        and '?' not in value and '#' not in value):
-                    candidate = 'https://' + raw.netloc + raw.path
-                    target = _target(candidate)
-                    if raw.scheme == 'http' or target[:2] != _target(self.base)[:2]:
-                        return
-            except (ValueError, UnicodeError):
-                pass
-            raise ValueError()
-        self.links.append(link)
+        self._hrefs.append(values[0])
 
 
 def get(url, timeout=8):

@@ -13,6 +13,110 @@ from test_discovery_transport import FakeSocket, FakeContext, row, IP
 
 
 class ExchangeContractTests(unittest.TestCase):
+    def test_html_base_resolves_earlier_relative_anchor(self):
+        body = b'<a href="guide">go</a><base href="/docs/">'
+        response = (b'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: '
+                    + str(len(body)).encode() + b'\r\n\r\n' + body)
+        result = self.invoke(response)
+        self.assertEqual(result['links'], ['https://example.invalid/docs/guide'])
+
+    def test_malformed_https_base_does_not_invent_local_destination(self):
+        parser = transport._Links('https://example.invalid/dir/page', report_excluded=True)
+        parser.feed('<base href="https:fake/"><a href="item">')
+        self.assertEqual(parser.links, [None])
+
+    def test_html_base_variants_and_excluded_schemes(self):
+        def links(document, url='https://example.invalid/dir/page'):
+            parser = transport._Links(url, report_excluded=True)
+            # Fragment boundaries include the base element itself.
+            for chunk in (document[:19], document[19:37], document[37:]):
+                parser.feed(chunk)
+            parser.close()
+            return parser.links
+
+        absolute = 'https://example.invalid/safe'
+        cases = [
+            ('<a href="x"></a><base href="sub/"><base href="/ignored/">', ['https://example.invalid/dir/sub/x']),
+            ('<base><base href="/chosen/"><a href="x">', ['https://example.invalid/chosen/x']),
+            ('<base href=""><base href="/ignored/"><a href="x">', ['https://example.invalid/dir/x']),
+            ('<base href="https://outside.invalid/secret/"><a href="x"><a href="/x"><a href="https://example.invalid/safe">', [None, None, absolute]),
+            ('<base href="http://outside.invalid/"><a href="x"><a href="https://example.invalid/safe">', [None, absolute]),
+            ('<base href="http://[bad"><a href="x"><a href="https://example.invalid/safe">', [None, absolute]),
+            ('<base href="/one/" href="/two/"><a href="x"><a href="https://example.invalid/safe">', [None, absolute]),
+            ('<base href="/docs/"><a href="javascript:alert(1)"><a href="//outside.invalid/x"><a href="/admin"><a href="/x?SECRET">', [None, None, None, None]),
+            ('<base href="../unsafe/"><a href="x"><a href="https://example.invalid/safe">', [None, absolute]),
+        ]
+        for document, expected in cases:
+            with self.subTest(document=document):
+                result = links(document)
+                self.assertEqual(result, expected)
+                self.assertNotIn('SECRET', repr(result))
+                self.assertNotIn('outside.invalid', repr(result))
+
+    def test_external_base_chunked_policy_never_resolves_external_dns(self):
+        from app import fortress_discovery_policy as policy
+        body = (b'<a href="fake">BEFORE</a><base href="https://outside.invalid/secret/">'
+                b'<a href="/fake">ROOT</a><a href="https://example.invalid/allowed">OK</a>')
+        parts = [body[:20], body[20:47], body[47:]]
+        chunked = b''.join(('%x\r\n' % len(part)).encode() + part + b'\r\n' for part in parts) + b'0\r\n\r\n'
+        first = b'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nTransfer-Encoding: chunked\r\n\r\n' + chunked
+        second = b'HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n'
+        sockets = [FakeSocket(first, IP), FakeSocket(second, IP)]
+        now = [0.0]
+        with patch.object(transport.socket, 'getaddrinfo', return_value=[row()]) as dns, \
+             patch.object(transport.socket, 'socket', side_effect=sockets), \
+             patch.object(transport.ssl, 'SSLContext', side_effect=lambda *a: FakeContext()):
+            result = policy.discover('https://example.invalid', ['/', '/allowed', '/fake'], '/', transport.exchange,
+                                     clock=lambda: now[0], sleep=lambda n: now.__setitem__(0, now[0] + n))
+        self.assertTrue(result['complete'])
+        self.assertEqual(result['pages'], 2)
+        self.assertEqual(dns.call_count, 2)
+        self.assertTrue(all(call.args[0] == 'example.invalid' for call in dns.call_args_list))
+        self.assertIn(b'GET /allowed HTTP/1.1', sockets[1].sent[0])
+        self.assertNotIn('outside.invalid', repr(result))
+        self.assertNotIn('secret', repr(result))
+
+    def test_redirect_then_base_uses_final_document_url(self):
+        from app import fortress_discovery_policy as policy
+        redirect = b'HTTP/1.1 302 Found\r\nLocation: /dir/page\r\nContent-Length: 0\r\n\r\n'
+        body = b'<a href="next">x</a><base href="docs/">'
+        page = (b'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: '
+                + str(len(body)).encode() + b'\r\n\r\n' + body)
+        final = b'HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n'
+        sockets = [FakeSocket(response, IP) for response in (redirect, page, final)]
+        now = [0.0]
+        with patch.object(transport.socket, 'getaddrinfo', return_value=[row()]) as dns, \
+             patch.object(transport.socket, 'socket', side_effect=sockets), \
+             patch.object(transport.ssl, 'SSLContext', side_effect=lambda *a: FakeContext()):
+            result = policy.discover('https://example.invalid', ['/', '/dir/page', '/dir/docs/next'], '/',
+                                     transport.exchange, clock=lambda: now[0],
+                                     sleep=lambda n: now.__setitem__(0, now[0] + n))
+        self.assertTrue(result['complete'])
+        self.assertEqual(result['pages'], 2)
+        self.assertEqual(result['requests'], 3)
+        self.assertIn(b'GET /dir/docs/next HTTP/1.1', sockets[2].sent[0])
+        self.assertTrue(all(call.args[0] == 'example.invalid' for call in dns.call_args_list))
+
+    def test_observed_external_base_exclusions_are_counted_without_disclosure(self):
+        from app import fortress_discovery_policy as policy
+        body = b'<a href="x">x</a><base href="https://outside.invalid/SECRET/"><a href="/y">y</a>'
+        response = (b'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: '
+                    + str(len(body)).encode() + b'\r\n\r\n' + body)
+        sock = FakeSocket(response, IP)
+        with patch.object(transport.socket, 'getaddrinfo', return_value=[row()]) as dns, \
+             patch.object(transport.socket, 'socket', return_value=sock), \
+             patch.object(transport.ssl, 'SSLContext', return_value=FakeContext()):
+            result = policy.discover_observed('https://example.invalid', ['/'], '/', transport.exchange_observed)
+        self.assertEqual(result['exclusion_reasons']['unknown'], 2)
+        self.assertEqual(dns.call_count, 1)
+        self.assertNotIn('outside.invalid', repr(result))
+        self.assertNotIn('SECRET', repr(result))
+
+    def test_base_does_not_weaken_link_count_limit(self):
+        parser = transport._Links('https://example.invalid/', report_excluded=True)
+        with self.assertRaises(ValueError):
+            parser.feed('<base href="/docs/">' + '<a href="x">' * 1001)
+
     def test_returns_extracted_links_not_body(self):
         body = b'<p>BODY_SECRET</p><a href="/next">go</a>'
         response = (b'HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: '

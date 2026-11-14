@@ -185,7 +185,10 @@ def _run_observed_live(target, routes, requested_limits=None, private_view=False
     try:
         backend = str(Path(__file__).resolve().parents[1])
         code = "import sys;sys.path.insert(0,sys.argv[1]);from app.fortress_discovery_worker import _child;raise SystemExit(_child())"
-        raw = run_gated([sys.executable, '-I', '-c', code, backend], limits.seconds if dynamic else 120, payload, output_limit=262144)
+        # The child's cooperative crawl deadline starts after process startup;
+        # reserve bounded time for startup and result serialization/cleanup.
+        supervisor_timeout = limits.seconds + 10 if dynamic else 120
+        raw = run_gated([sys.executable, '-I', '-c', code, backend], supervisor_timeout, payload, output_limit=262144)
         try:
             result = json.loads(raw, object_pairs_hook=_unique_object)
         except (ValueError, UnicodeError, RecursionError):

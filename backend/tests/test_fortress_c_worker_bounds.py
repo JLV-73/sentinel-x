@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from app.fortress_job import run_gated
+from app.fortress_job import run_gated, OutputLimitExceeded
 
 
 @unittest.skipUnless(os.name == 'nt', 'Windows job required')
@@ -55,7 +55,7 @@ class WorkerBoundsTests(unittest.TestCase):
                     api._run_live('https://example.invalid/', 'https://example.invalid/')
                 thread.join(5)
                 self.assertFalse(thread.is_alive())
-                self.assertEqual(errors, [ValueError])
+                self.assertEqual(errors, [OutputLimitExceeded])
                 self.assertTrue(api._LIVE_LOCK.acquire(blocking=False))
                 api._LIVE_LOCK.release()
                 time.sleep(1.2)
