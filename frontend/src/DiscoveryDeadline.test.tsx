@@ -1,0 +1,20 @@
+import {afterEach,expect,it,vi} from 'vitest';
+import {act,cleanup,fireEvent,render,screen} from '@testing-library/react';
+import {LocaleProvider,localeKey} from './i18n';
+import DiscoveryReal from './components/DiscoveryReal';
+const cap={schema:'fortress.discovery-capability/1',lab:true,live:true};
+afterEach(()=>{cleanup();vi.useRealTimers();vi.restoreAllMocks();localStorage.clear();});
+it('allows 150 seconds for a 120 second budget and discards a late response',async()=>{
+ localStorage.setItem(localeKey,'en');let finish!:(r:Response)=>void;
+ const fetcher=vi.spyOn(globalThis,'fetch').mockImplementation(async u=>String(u).endsWith('/discovery/live')?await new Promise<Response>(resolve=>{finish=resolve;}):new Response(JSON.stringify(String(u).endsWith('/discovery/capability')?cap:{capability:'a'.repeat(32)})));
+ render(<LocaleProvider><DiscoveryReal/></LocaleProvider>);expect(fetcher).not.toHaveBeenCalled();
+ fireEvent.change(screen.getByLabelText(/Discovery HTTPS origin/i),{target:{value:'https://example.org'}});fireEvent.click(screen.getByRole('button',{name:/check discovery capability/i}));await screen.findByText(/live capability verified/i);
+ vi.useFakeTimers();fireEvent.click(screen.getByLabelText(/I confirm I am authorized/i));fireEvent.click(screen.getByRole('button',{name:/start discovery/i}));
+ await act(async()=>{for(let i=0;i<20;i++)await Promise.resolve();});
+ const post=fetcher.mock.calls.find(([u])=>String(u).endsWith('/discovery/live'));expect(post).toBeDefined();
+ expect(screen.getByRole('status')).toHaveTextContent(/150 s/);expect(post![1]!.signal!.aborted).toBe(false);
+ await act(async()=>{await vi.advanceTimersByTimeAsync(149999);});expect(post![1]!.signal!.aborted).toBe(false);
+ await act(async()=>{await vi.advanceTimersByTimeAsync(1);});expect(post![1]!.signal!.aborted).toBe(true);
+ expect(screen.getByRole('alert')).toBeInTheDocument();expect(vi.getTimerCount()).toBe(0);
+ await act(async()=>{finish(new Response('{}'));});expect(screen.queryByTitle(/discovery report preview/i)).not.toBeInTheDocument();
+});

@@ -248,6 +248,73 @@ def install_disabled_route(app, origins):
             raise HTTPException(503, 'Audit unavailable') from None
         return JSONResponse(observation, headers={'Cache-Control': 'no-store'})
 
+    @app.post('/api/fortress/discovery/lab')
+    @app.post('/api/fortress/discovery/live')
+    @_private_errors
+    async def discovery(request: Request):
+        _guard(request, origins)
+        tokens = request.headers.getlist('x-sentinel-capability')
+        if len(tokens) != 1 or not tokens[0].isascii() or not secrets.compare_digest(tokens[0], _CAPABILITY):
+            raise HTTPException(403, 'Request forbidden')
+        if request.headers.getlist('content-type') != ['application/json']:
+            raise HTTPException(415, 'JSON required')
+        mode = request.url.path.rsplit('/', 1)[-1]
+        if mode not in ('lab', 'live'):
+            raise HTTPException(404, 'Not found')
+        body = await _read_body(request, _BODY_LIMIT)
+        try:
+            data = json.loads(body, object_pairs_hook=_unique_pairs)
+        except (ValueError, UnicodeDecodeError, RecursionError):
+            raise HTTPException(422, 'Invalid body') from None
+        if type(data) is not dict or data.get('authorized') is not True:
+            raise HTTPException(422, 'Invalid body')
+        if mode == 'live':
+            if (set(data) - {'authorized', 'target', 'routes', 'limits', 'private_view'} or not {'authorized', 'target', 'routes'} <= set(data)
+                    or ('private_view' in data and type(data['private_view']) is not bool) or type(data['target']) is not str
+                    or type(data['routes']) is not list or any(type(r) is not str for r in data['routes'])):
+                raise HTTPException(422, 'Invalid body')
+            from .fortress_discovery_worker import validate_live_scope, validate_dynamic_scope, run_observed_live
+            try:
+                if 'limits' in data:
+                    validate_dynamic_scope(data['target'], data['routes'], data['limits'])
+                else:
+                    validate_live_scope(data['target'], data['routes'])
+            except (ValueError, TypeError):
+                raise HTTPException(422, 'Invalid body') from None
+            try:
+                if data.get('private_view') is True:
+                    value = await run_in_threadpool(run_observed_live, data['target'], data['routes'], data.get('limits'), True)
+                elif 'limits' in data:
+                    value = await run_in_threadpool(run_observed_live, data['target'], data['routes'], data['limits'])
+                else:
+                    value = await run_in_threadpool(run_observed_live, data['target'], data['routes'])
+            except BlockingIOError:
+                raise HTTPException(409, 'Discovery busy') from None
+            except Exception:
+                raise HTTPException(503, 'Discovery live unavailable') from None
+            from .fortress_discovery_contract import valid_live
+            if not valid_live(value) or ('private_paths' in value) != (data.get('private_view') is True):
+                raise HTTPException(503, 'Discovery live unavailable')
+            return JSONResponse(value, headers={'Cache-Control': 'no-store'})
+        if set(data) != {'authorized'}:
+            raise HTTPException(422, 'Invalid body')
+        from .fortress_discovery_worker import run_owned_https_lab
+        try:
+            value = await run_in_threadpool(run_owned_https_lab)
+        except BlockingIOError:
+            raise HTTPException(409, 'Discovery busy') from None
+        except Exception:
+            raise HTTPException(503, 'Discovery lab unavailable') from None
+        return JSONResponse(value, headers={'Cache-Control': 'no-store'})
+
+    @app.get('/api/fortress/discovery/capability')
+    async def discovery_capability(request: Request):
+        _guard(request, origins)
+        supported = os.name == 'nt'
+        return JSONResponse({'schema': 'fortress.discovery-capability/1',
+                             'lab': supported, 'live': supported},
+                            headers={'Cache-Control': 'no-store'})
+
     @app.get('/api/fortress/mvp/capability')
     async def capability(request: Request):
         _guard(request, origins)

@@ -1,0 +1,41 @@
+import {it,expect,vi,afterEach} from 'vitest';
+import {render,screen,within,fireEvent,cleanup} from '@testing-library/react';
+import DiscoveryDemo from './components/DiscoveryDemo';
+import {LocaleProvider,localeKey} from './i18n';
+afterEach(()=>{cleanup();vi.restoreAllMocks();localStorage.clear();});
+it.each(['fr','en'] as const)('export equals sandbox preview without network APIs (%s)',async locale=>{
+ localStorage.setItem(localeKey,locale);
+ const fetcher=vi.spyOn(globalThis,'fetch'),xhr=vi.spyOn(globalThis,'XMLHttpRequest'),socket=vi.spyOn(globalThis,'WebSocket');
+ let blob:Blob|undefined;
+ const create=URL.createObjectURL,revoke=URL.revokeObjectURL;
+ URL.createObjectURL=vi.fn((value:Blob|MediaSource)=>{blob=value as Blob;return 'blob:demo';}); URL.revokeObjectURL=vi.fn();
+ const click=vi.spyOn(HTMLAnchorElement.prototype,'click').mockImplementation(()=>{});
+ try{
+  render(<LocaleProvider><DiscoveryDemo/></LocaleProvider>);
+  const demo=screen.getByRole('region',{name:/discovery.*synthetic|discovery.*synthétique/i});
+  expect(within(demo).getByText(/statut du mode réel|live mode status/i)).toBeInTheDocument();
+  expect(demo.querySelectorAll('input,select,form')).toHaveLength(0);
+  const toggle=within(demo).getByRole('button',{name:/view|voir/i});
+  expect(toggle).toHaveAttribute('aria-expanded','false');
+  const panelId=toggle.getAttribute('aria-controls');
+  expect(panelId).toBeTruthy();
+  const panel=document.getElementById(panelId!);
+  expect(panel).toHaveAttribute('hidden');
+  fireEvent.click(toggle);
+  expect(toggle).toHaveAttribute('aria-expanded','true');
+  expect(panel).not.toHaveAttribute('hidden');
+  const html=within(demo).getByTitle(/discovery.*preview|aperçu.*discovery/i).getAttribute('srcdoc');
+  expect(panel).toContainElement(within(demo).getByTitle(/discovery.*preview|aperçu.*discovery/i));
+  expect(html).toMatch(/synthetic data|données synthétiques/i);
+  expect(html).toContain(locale==='fr'?'Réponse HTTP non favorable':'Unfavourable HTTP response');
+  expect(html).not.toContain('http_refused');
+  fireEvent.click(within(demo).getByRole('button',{name:/download|télécharger/i}));
+  expect(click).toHaveBeenCalledOnce(); expect((click.mock.instances[0] as HTMLAnchorElement).download).toBe(`discovery-synthetic-${locale}.html`);
+  const exported=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(reader.error);reader.readAsText(blob!);});
+  expect(exported).toBe(html);expect(fetcher).not.toHaveBeenCalled();expect(xhr).not.toHaveBeenCalled();expect(socket).not.toHaveBeenCalled();
+  fireEvent.click(toggle);
+  expect(toggle).toHaveAttribute('aria-expanded','false');
+  expect(panel).toHaveAttribute('hidden');
+  expect(within(demo).queryByTitle(/discovery.*preview|aperçu.*discovery/i)).not.toBeInTheDocument();
+ }finally{URL.createObjectURL=create;URL.revokeObjectURL=revoke;}
+});

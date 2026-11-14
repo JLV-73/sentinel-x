@@ -1,0 +1,5 @@
+.discovery-demo {
+  border: 2px solid #d9a741;
+  background: linear-gradient(135deg, #302717, #161c2b);
+}
+.discovery-demo .button { margin: .5rem .75rem .5rem 0; }

@@ -4,10 +4,10 @@
 
 Apache-2.0 · [English](README.md) · [Contribuer](CONTRIBUTING.md)
 
-## Présentation des sources candidates v0.2.3
+## Présentation des sources candidates v0.2.4
 
-`VERSION` et les métadonnées du paquet frontend indiquent **0.2.3**. Ce candidat
-n'est ni un tag ni une release v0.2.3 publiés. Cet arbre
+`VERSION` et les métadonnées du paquet frontend indiquent **0.2.4**. Ce candidat
+n'est ni un tag ni une release v0.2.4 publiés. Cet arbre
 source n'établit pas lui-même une publication ou une disponibilité distante ; consulter
 les [Releases GitHub](https://github.com/JLV-73/sentinel-x/releases). L'installation
 ci-dessous est distincte du tableau et du démarrage historiques.
@@ -19,6 +19,7 @@ ci-dessous est distincte du tableau et du démarrage historiques.
 | Fixture DIGITAL FORTRESS | Démonstration locale expérimentale | HTTPS en boucle locale et DNS/pair simulés, pas un audit Internet. |
 | Import / rapport | Import JSON local et export HTML expérimentaux | Observations déclarées, ni authentifiées ni vérifiées indépendamment. |
 | Observation HTTPS | Candidat Windows expérimental | Une tentative HEAD autorisée ; protections et cycle de vie non entièrement qualifiés. |
+| Discovery | Exploration HTTPS GET bornée expérimentale | Autorisation et périmètre explicites requis ; voir les [limites Discovery](docs/DISCOVERY_V024_CANDIDATE_LIMITS_FR.md). |
 
 L'analyse HEAD avancée interprète les faits disponibles sur TLS, HSTS, CSP, les
 cookies et d'autres en-têtes. Le rapport HTML premium FR/EN présente observations
@@ -74,7 +75,7 @@ ni Git Bash.
    Vérifier que HEAD affiché est le SHA candidat vérifié. HEAD détaché est normal.
    Un checkout de commit ne comprend pas les modifications non committées.
 
-   **Alternative stable (v0.2.1, sans les changements du candidat v0.2.3) :**
+   **Alternative stable (v0.2.1, sans les changements du candidat v0.2.4) :**
    confirmer le tag et la Release sur GitHub Releases, puis
    depuis un nouveau dossier parent accessible en écriture :
 
@@ -199,7 +200,7 @@ de fond. Ouvrir une fiche/changer de langue ne lit que le cache local. Les donn�
 GitHub Advisory Database sont **CC-BY-4.0**, distinctes du code Apache-2.0 ; attribution
 et JSON d’origine restent disponibles. Voir le [contrat du pilote borné](docs/GHSA_PILOT_CONTRACT.md).
 
-**Choix d’installation :** le démarrage stable sélectionne `v0.2.1`, pas le candidat v0.2.3.
+**Choix d’installation :** le démarrage stable sélectionne `v0.2.1`, pas le candidat v0.2.4.
 La stable antérieure publiée `v0.1.0` (sans GHSA) est une alternative : remplacer
 uniquement `--branch v0.2.1` par `--branch v0.1.0` à l’étape 2. Toujours choisir
 un **nouveau dossier isolé** et conserver tous les prérequis/garde-fous ; ne pas
