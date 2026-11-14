@@ -56,7 +56,7 @@ def main():
             cwd = ROOT / 'frontend' if name == 'frontend' else ROOT
             flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
             children.append(subprocess.Popen(command, cwd=cwd, env=env, creationflags=flags))
-        print('\nSENTINEL X / NIGHTFALL — ALPHA 007', flush=True)
+        print('\nSENTINEL X / NIGHTFALL', flush=True)
         print('Cockpit : http://127.0.0.1:5177 | API : http://127.0.0.1:8007/api/health', flush=True)
         print('Ctrl+C dans CETTE fenetre arrete proprement les deux serveurs. Aucun service permanent.', flush=True)
         while not stopping:

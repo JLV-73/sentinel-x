@@ -1,9 +1,8 @@
 # SENTINEL X — NIGHTFALL : limites du candidat Discovery v0.2.4
 
 Ce document décrit les sources et leurs limites, pas l'existence d'un tag ou
-d'une Release. Vérifier leur disponibilité dans les Releases GitHub. La console
-du lanceur conserve le libellé historique `ALPHA 007` : il ne détermine ni la
-version des sources ni leur statut de publication ; consulter `VERSION`.
+d'une Release. Vérifier leur disponibilité dans les Releases GitHub et consulter
+`VERSION` pour identifier la version des sources de la copie choisie.
 
 ## Portée et confidentialité
 
