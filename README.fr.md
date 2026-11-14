@@ -6,9 +6,9 @@ Apache-2.0 · [English](README.md) · [Contribuer](CONTRIBUTING.md)
 
 ## Présentation des sources candidates v0.2.4
 
-`VERSION` et les métadonnées du paquet frontend indiquent **0.2.4**. Ce candidat
-n'est ni un tag ni une release v0.2.4 publiés. Cet arbre
-source n'établit pas lui-même une publication ou une disponibilité distante ; consulter
+`VERSION` et les métadonnées du paquet frontend indiquent **0.2.4**. Cet arbre
+source candidat n'établit pas à lui seul l'existence ni la disponibilité distante
+d'un tag ou d'une Release v0.2.4 ; consulter
 les [Releases GitHub](https://github.com/JLV-73/sentinel-x/releases). L'installation
 ci-dessous est distincte du tableau et du démarrage historiques.
 
@@ -129,6 +129,10 @@ ni Git Bash.
    La fixture expérimentale de boucle locale n'est pas un audit Internet. Garder
    la console du lanceur ouverte ; l'arrêter depuis cette console. Ne jamais exposer
    publiquement ces services locaux ni arrêter un autre processus pour libérer un port.
+
+   La console du lanceur affiche encore le libellé historique `ALPHA 007` ; il
+   n'identifie ni la version des sources ni leur statut de publication. Vérifier
+   `VERSION` dans la copie choisie et séparément le tag ou la Release sur GitHub.
 
 **0.1.1 — GHSA Intelligence Edition.** P1-C est intégré dans main par la PR #9 : les avis GitHub reviewed, demandés explicitement pour une CVE locale, complètent CISA KEV, NVD/CVSS et FIRST EPSS. Le tag et la Release v0.1.1 ont été publiés ; consulter les [Releases GitHub](https://github.com/JLV-73/sentinel-x/releases) pour leur disponibilité. La stable antérieure v0.1.0 et les deux Alpha restent préservées. « Stable » ne signifie pas certifié.
 
@@ -296,6 +300,7 @@ un fichier différent. Voir [installation du schéma](docs/SCHEMA_SETUP.md). Auc
 Laisse cette console ouverte. Ouvre toi-même **http://127.0.0.1:5177** dans ton
 navigateur. Santé API : http://127.0.0.1:8007/api/health . Le lanceur n'ouvre aucun
 navigateur et n'installe aucun service.
+Le libellé `ALPHA 007` de la console est historique : ce n'est ni la version installée ni une preuve de publication ; vérifier séparément `VERSION` et le tag choisi.
 
 **NO DATA est normal après une installation neuve.** Dans le cockpit, ouvre
 **DATA CONTROL** ou **CONTRÔLE DES DONNÉES**, puis déclenche la synchronisation CISA

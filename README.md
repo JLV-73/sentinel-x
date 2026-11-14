@@ -7,8 +7,8 @@ Apache-2.0 · [Français](README.fr.md) · [Contribute](CONTRIBUTING.md)
 ## v0.2.4 candidate source overview
 
 `VERSION` and frontend package metadata identify **0.2.4**. This candidate
-is not a published v0.2.4 tag or release. This source tree
-does not itself establish publication or remote availability; check
+source tree does not itself establish that a v0.2.4 tag or release exists
+or is available remotely; check
 [GitHub Releases](https://github.com/JLV-73/sentinel-x/releases). The installation
 below is separate from the historical release instructions and version table.
 
@@ -124,6 +124,10 @@ are PowerShell, not cmd.exe or Git Bash.
    and has important limitations; see the v0.2.3 limits above. The loopback fixture is not an Internet audit. Keep
    the launcher console open; stop it from that console. Never expose these local
    services publicly or terminate an unrelated process to free a port.
+
+   The launcher console still displays the historical label `ALPHA 007`; it does
+   not identify the source version or its publication status. Check `VERSION` in
+   the chosen checkout and verify any tag or Release on GitHub separately.
 
 **0.1.1 — GHSA Intelligence Edition.** P1-C is integrated into main by PR #9: targeted, explicitly requested GitHub reviewed advisories complement CISA KEV, NVD/CVSS and FIRST EPSS. The v0.1.1 tag and Release were published; check [GitHub Releases](https://github.com/JLV-73/sentinel-x/releases) for availability. Earlier stable v0.1.0 and both Alpha releases remain preserved. “Stable” is not a security certification.
 
@@ -287,6 +291,7 @@ different existing file. See [schema setup](docs/SCHEMA_SETUP.md). No API key is
 
 Keep that console open. Open **http://127.0.0.1:5177** yourself in a browser.
 API health: http://127.0.0.1:8007/api/health . The launcher opens no browser and installs no service.
+The console's `ALPHA 007` label is historical, not the installed version or a publication claim; check `VERSION` and the selected tag separately.
 
 **NO DATA is expected in a fresh installation.** In the cockpit, open
 **DATA CONTROL** (or **CONTRÔLE DES DONNÉES**) and use the manual **Synchronize CISA**
