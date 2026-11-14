@@ -356,7 +356,9 @@ class _Links(HTMLParser):
             independent = False
             try:
                 raw = urlsplit(value)
-                independent = bool(raw.scheme or raw.netloc)
+                # Network-path references inherit the document base scheme;
+                # only an explicit scheme is independent of that base.
+                independent = bool(raw.scheme)
                 base = self.base if independent else self._document_base
                 link = _reference(value, base) if base is not None else None
                 if link is not None and self._base_seen and not independent:

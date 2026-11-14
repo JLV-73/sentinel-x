@@ -13,6 +13,61 @@ from test_discovery_transport import FakeSocket, FakeContext, row, IP
 
 
 class ExchangeContractTests(unittest.TestCase):
+    def test_http_external_base_network_reference_is_excluded_by_policy(self):
+        from app import fortress_discovery_policy as policy
+        body = b'<base href="http://outside.invalid/docs/"><a href="//example.invalid/guide">'
+        response = (b'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: '
+                    + str(len(body)).encode() + b'\r\n\r\n' + body)
+        sock = FakeSocket(response, IP)
+        with patch.object(transport.socket, 'getaddrinfo', return_value=[row()]) as dns, \
+             patch.object(transport.socket, 'socket', return_value=sock) as sockets, \
+             patch.object(transport.ssl, 'SSLContext', return_value=FakeContext()):
+            result = policy.discover_observed('https://example.invalid', ['/', '/guide'], '/', transport.exchange_observed)
+        self.assertEqual(result['requests'], 1)
+        self.assertEqual(result['exclusion_reasons']['unknown'], 1)
+        self.assertEqual(dns.call_count, 1)
+        self.assertEqual(sockets.call_count, 1)
+        self.assertNotIn('outside.invalid', repr(result))
+
+    def test_network_reference_document_base_matrix(self):
+        origin = 'https://example.invalid/dir/page'
+        cases = (
+            ('<a href="//example.invalid/guide">', ['//example.invalid/guide']),
+            ('<base href="https://example.invalid/docs/"><a href="//example.invalid/guide">', ['https://example.invalid/guide']),
+            ('<base href="https://example.invalid/docs/"><a href="//outside.invalid/guide">', [None]),
+            ('<base href="http://example.invalid/docs/"><a href="//example.invalid/guide">', [None]),
+            ('<base href="http://outside.invalid/docs/"><a href="//example.invalid/guide">', [None]),
+            ('<base href="https://outside.invalid/docs/"><a href="//example.invalid/guide">', [None]),
+            ('<base href="http://[bad"><a href="//example.invalid/guide">', [None]),
+            ('<base href="ftp://example.invalid/"><a href="//example.invalid/guide">', [None]),
+            ('<base href="http://outside.invalid/"><a href="https://example.invalid/guide"><a href="http://example.invalid/guide">', ['https://example.invalid/guide', None]),
+            ('<a href="//example.invalid/guide"><base href="http://outside.invalid/"><base href="https://example.invalid/">', [None]),
+            ('<a href="//example.invalid/guide"><base href="https://example.invalid/"><base href="http://outside.invalid/">', ['https://example.invalid/guide']),
+        )
+        for document, expected in cases:
+            with self.subTest(document=document):
+                parser = transport._Links(origin, report_excluded=True)
+                parser.feed(document)
+                parser.close()
+                self.assertEqual(parser.links, expected)
+
+    def test_https_base_network_reference_reaches_allowed_route(self):
+        from app import fortress_discovery_policy as policy
+        body = b'<a href="//example.invalid/guide"><base href="https://example.invalid/docs/">'
+        response = (b'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: '
+                    + str(len(body)).encode() + b'\r\n\r\n' + body)
+        sockets = [FakeSocket(response, IP), FakeSocket(b'HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n', IP)]
+        now = [0.0]
+        with patch.object(transport.socket, 'getaddrinfo', return_value=[row()]) as dns, \
+             patch.object(transport.socket, 'socket', side_effect=sockets), \
+             patch.object(transport.ssl, 'SSLContext', side_effect=lambda *a: FakeContext()):
+            result = policy.discover('https://example.invalid', ['/', '/guide'], '/', transport.exchange,
+                                     clock=lambda: now[0], sleep=lambda n: now.__setitem__(0, now[0] + n))
+        self.assertTrue(result['complete'])
+        self.assertEqual(result['requests'], 2)
+        self.assertIn(b'GET /guide HTTP/1.1', sockets[1].sent[0])
+        self.assertTrue(all(call.args[0] == 'example.invalid' for call in dns.call_args_list))
+
     def test_html_base_resolves_earlier_relative_anchor(self):
         body = b'<a href="guide">go</a><base href="/docs/">'
         response = (b'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: '
