@@ -1,5 +1,9 @@
 # SENTINEL X — NIGHTFALL : limites du candidat Discovery v0.2.4
 
+Ce document décrit les sources et leurs limites, pas l'existence d'un tag ou
+d'une Release. Vérifier leur disponibilité dans les Releases GitHub et consulter
+`VERSION` pour identifier la version des sources de la copie choisie.
+
 ## Portée et confidentialité
 
 L'exploration est un GET HTTPS borné, sur le seul périmètre autorisé. Les références à des scripts et feuilles de style sont comptées par page, sans téléchargement automatique. Leur somme est un nombre de références, non d'URL distinctes. Les exclusions sont comptées par référence effectivement examinée ; les motifs `unknown` restent indéterminés. Un filtre de noms ne peut pas reconnaître toutes les routes susceptibles d'avoir des effets : un GET n'est pas intrinsèquement sans effet.

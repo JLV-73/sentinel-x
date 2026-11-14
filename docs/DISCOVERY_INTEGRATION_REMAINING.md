@@ -1,5 +1,10 @@
 # Discovery v0.2.4 — raccordements restants, NO GO
 
+**Note historique de travail :** les constats, références aux README et mentions
+de mandat ci-dessous décrivent le checkpoint étudié alors, et non nécessairement
+l'état actuel des sources ou une autorisation en cours. Voir les README et
+[limites du candidat](DISCOVERY_V024_CANDIDATE_LIMITS_FR.md) de la révision consultée.
+
 ## État observé dans cette copie
 
 État actualisé après les essais de laboratoire : prototype expérimental, **pas un candidat v0.2.4 terminé ni une activation opérationnelle qualifiée**. `README.fr.md` décrit encore les sources candidates v0.2.3. Les résultats de tests doivent être relevés sur le checkpoint précis et non déduits de la présence des fichiers.
